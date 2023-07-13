@@ -8,6 +8,7 @@ module.exports = {
     connect: path.resolve(SRC_DIR, 'functions/connect'),
     disconnect: path.resolve(SRC_DIR, 'functions/disconnect'),
     run: path.resolve(SRC_DIR, 'functions/run'),
+    stop: path.resolve(SRC_DIR, 'functions/stop'),
   },
   output: {
     path: OUT_DIR,

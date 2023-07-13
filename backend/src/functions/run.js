@@ -1,5 +1,7 @@
 import { response } from '../utils/response-util';
 import getSendService from '../core/services/send-service';
+import Evolve from '../core/evolve';
+import getDBService from '../core/services/db-service';
 
 const ACTION = 'run';
 
@@ -26,8 +28,19 @@ const handler = async (event, context) => {
 
   try {
     const { total } = JSON.parse(event.body);
+    const dbService = getDBService(event);
     const sendService = getSendService(ACTION, event);
-    await run({ sendService, total });
+    console.log('debug id', sendService.id);
+    // await run({ sendService, total });
+    const program = {
+      totalGen: total,
+      totalPop: 100,
+      totalLength: 10,
+      getGene: () => Math.floor(Math.random() * 100),
+    };
+    const evolve = new Evolve({ sendService, dbService, program });
+    await dbService.update({ payload: { active: true } });
+    await evolve.start();
     return response();
   } catch (error) {
     console.error('error running', error.message);

@@ -16,86 +16,113 @@ export class EvolveStack extends MStack {
   constructor(scope: Construct, id: string, props?: MStackProps) {
     super(scope, id, props);
 
-    const { ENV, NAME } = this.mEnvironment;
+    const tableName = this.getName('table');
 
-    const apiName = `${ENV}-${NAME}-ws-api`;
-    const connectLambdaName = `${ENV}-${NAME}-connect`;
-    const disconnectLambdaName = `${ENV}-${NAME}-disconnect`;
-    const runLambdaName = `${ENV}-${NAME}-run`;
-    const tableName = `${ENV}-${NAME}-table`;
-
-    const lambdaPolicy = new iam.PolicyStatement({
+    const executePolicy = new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       resources: [`arn:aws:execute-api:*:*:*`],
       actions: ['execute-api:Invoke', 'execute-api:ManageConnections'],
     });
 
-    const connectLambdaFn = new lambda.Function(
-      this,
-      `${connectLambdaName}-id`,
-      {
-        runtime: lambda.Runtime.NODEJS_18_X,
-        functionName: connectLambdaName,
-        handler: `connect.handler`,
-        code: lambda.Code.fromAsset(
-          path.resolve(__dirname, '../build/connect')
-        ),
-        timeout: Duration.seconds(30),
-        environment: {
-          ENV,
-          NAME,
-        },
-      }
-    );
+    const dbPolicy = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      resources: [`arn:aws:dynamodb:us-east-1:654627066109:table/${tableName}`],
+      actions: [
+        'dynamodb:UpdateItem',
+        'dynamodb:Query',
+        'dynamodb:BatchWriteItem',
+        'dynamodb:DeleteItem',
+      ],
+    });
 
-    connectLambdaFn.addToRolePolicy(lambdaPolicy);
+    const connectLambdaFn = this.createLambda('connect', {
+      policies: [executePolicy, dbPolicy],
+      timeout: 30,
+    });
+    const disconnectLambdaFn = this.createLambda('disconnect', {
+      policies: [executePolicy, dbPolicy],
+      timeout: 30,
+    });
+    const runLambdaFn = this.createLambda('run', {
+      policies: [executePolicy, dbPolicy],
+      timeout: 900,
+    });
 
-    const disconnectLambdaFn = new lambda.Function(
-      this,
-      `${disconnectLambdaName}-id`,
-      {
-        runtime: lambda.Runtime.NODEJS_18_X,
-        functionName: disconnectLambdaName,
-        handler: `disconnect.handler`,
-        code: lambda.Code.fromAsset(
-          path.resolve(__dirname, '../build/disconnect')
-        ),
-        timeout: Duration.seconds(30),
-        environment: {
-          ENV,
-          NAME,
-        },
-      }
-    );
+    const stopLambdaFn = this.createLambda('stop', {
+      policies: [executePolicy, dbPolicy],
+      timeout: 30,
+    });
 
-    disconnectLambdaFn.addToRolePolicy(lambdaPolicy);
+    this.createApi('ws-api', {
+      standard: { connect: connectLambdaFn, disconnect: disconnectLambdaFn },
+      additional: { run: runLambdaFn, stop: stopLambdaFn },
+    });
 
-    const runLambdaFn = new lambda.Function(this, `${runLambdaName}-id`, {
+    this.createTable('table');
+  }
+
+  getName(name: string) {
+    const { ENV, NAME } = this.mEnvironment;
+    return `${ENV}-${NAME}-${name}`;
+  }
+
+  createTable(name: string) {
+    const tableName = this.getName(name);
+
+    const table = new dynamodb.Table(this, `${tableName}-id`, {
+      tableName,
+      partitionKey: { name: 'pk', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'sk', type: dynamodb.AttributeType.STRING },
+    });
+
+    return table;
+  }
+
+  createLambda(name: string, options: any) {
+    const { ENV, NAME } = this.mEnvironment;
+
+    const { policies, timeout } = options;
+
+    const lambdaFnName = this.getName(name);
+
+    const lambdaFn = new lambda.Function(this, `${lambdaFnName}-id`, {
       runtime: lambda.Runtime.NODEJS_18_X,
-      functionName: runLambdaName,
-      handler: `run.handler`,
-      code: lambda.Code.fromAsset(path.resolve(__dirname, '../build/run')),
-      timeout: Duration.seconds(30),
+      functionName: lambdaFnName,
+      handler: `${name}.handler`,
+      code: lambda.Code.fromAsset(path.resolve(__dirname, `../build/${name}`)),
+      timeout: Duration.seconds(timeout),
       environment: {
         ENV,
         NAME,
       },
     });
 
-    runLambdaFn.addToRolePolicy(lambdaPolicy);
+    policies.forEach((policy: iam.PolicyStatement) => {
+      lambdaFn.addToRolePolicy(policy);
+    });
+
+    return lambdaFn;
+  }
+
+  createApi(name: string, options: any) {
+    const apiName = this.getName(name);
+
+    const { standard, additional } = options;
+
+    const { connect, disconnect } = standard;
 
     const webSocketApi = new WebSocketApi(this, `${apiName}-id`, {
       apiName,
       connectRouteOptions: {
         integration: new WebSocketLambdaIntegration(
           'connect-integration',
-          connectLambdaFn
+          connect
         ),
       },
       disconnectRouteOptions: {
         integration: new WebSocketLambdaIntegration(
           'disconnect-integration',
-          disconnectLambdaFn
+          disconnect
         ),
       },
     });
@@ -105,16 +132,15 @@ export class EvolveStack extends MStack {
       autoDeploy: true,
     });
 
-    webSocketApi.addRoute('run', {
-      integration: new WebSocketLambdaIntegration(
-        'run-integration',
-        runLambdaFn
-      ),
+    Object.entries(additional).forEach(([name, lambda]: any) => {
+      webSocketApi.addRoute(name, {
+        integration: new WebSocketLambdaIntegration(
+          `${name}-integration`,
+          lambda
+        ),
+      });
     });
 
-    new dynamodb.Table(this, tableName, {
-      tableName,
-      partitionKey: { name: 'pk', type: dynamodb.AttributeType.STRING },
-    });
+    return webSocketApi;
   }
 }
