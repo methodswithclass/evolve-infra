@@ -26,7 +26,7 @@ const Trash = (props) => {
     <div className="trashArena">
       <div className="controls">
         {buttons.map((item) => (
-          <Button w="60%" m={5} onClick={item.onClick}>
+          <Button key={item.id} w="60%" m={5} onClick={item.onClick}>
             {item.title}
           </Button>
         ))}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex, Button } from '@chakra-ui/react';
+import { Button } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 
 const Header = (props) => {
@@ -35,6 +35,7 @@ const Header = (props) => {
         <div className="navInner">
           {menu.map((item) => (
             <Button
+              key={item.id}
               size="sm"
               colorScheme={item.active ? 'blue' : 'gray'}
               onClick={item.onClick}
