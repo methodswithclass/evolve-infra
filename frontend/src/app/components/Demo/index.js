@@ -25,6 +25,29 @@ const Demo = (props) => {
   const [best, setBest] = useState({ fitness: 0 });
   const [type, setType] = useState('other');
 
+  const initial = [
+    {
+      setter: setFirst,
+      value: 1,
+    },
+    {
+      setter: setTotal,
+      value: 200,
+    },
+    {
+      setter: setCurrent,
+      value: 1,
+    },
+    {
+      setter: setBest,
+      value: { fitness: 0 },
+    },
+    {
+      setter: setType,
+      value: 'other',
+    },
+  ];
+
   const handleRun = useCallback(() => {
     const data = {
       options: {
@@ -44,6 +67,12 @@ const Demo = (props) => {
   const handleStop = () => {
     setDisableRun(false);
     send('stop');
+  };
+
+  const handleReset = () => {
+    initial.forEach(({ value, setter }) => {
+      setter(value);
+    });
   };
 
   const handleResponse = (data) => {
@@ -102,6 +131,14 @@ const Demo = (props) => {
             </Button>
             <Button m={2} w={width} onClick={handleStop}>
               Stop
+            </Button>
+            <Button
+              m={2}
+              w={width}
+              isDisabled={disableRun}
+              onClick={handleReset}
+            >
+              Reset
             </Button>
           </Flex>
           <Flex w="30%" flexDirection="column" align="center">
