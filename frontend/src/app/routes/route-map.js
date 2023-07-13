@@ -1,5 +1,6 @@
 import Home from '../modules/Home';
-import Demo from '../modules/Demo';
+import Feedback from '../modules/Feedback';
+import TrashPickup from '../modules/TrashPickup';
 import Root from '../modules/Root';
 
 const RouteMap = [
@@ -9,9 +10,14 @@ const RouteMap = [
     component: Home,
   },
   {
-    id: 'demo',
-    path: 'demo',
-    component: Demo,
+    id: 'feedback',
+    path: 'feedback',
+    component: Feedback,
+  },
+  {
+    id: 'trash',
+    path: 'trash-pickup',
+    component: TrashPickup,
   },
   {
     id: 'default',

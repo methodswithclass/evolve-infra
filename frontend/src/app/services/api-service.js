@@ -7,7 +7,6 @@ const wssUrl = process.env.REACT_APP_WSS_URL;
 
 export const onMessage = (data) => {
   const { action } = data;
-  console.log('debug receive', receive);
   const callbacks = receive[action] || {};
   Object.values(callbacks).forEach((callback) => {
     if (typeof callback === 'function') {
@@ -21,13 +20,9 @@ export const onMessage = (data) => {
 export const connect = () => {
   socket = new WebSocket(`${wssUrl}`);
 
-  socket.onopen = (event) => {
-    console.log('debug connected', event);
+  socket.onopen = () => {
+    console.log('debug connected');
     connected = true;
-  };
-
-  socket.onerror = (error) => {
-    console.log('debug error', error.message);
   };
 
   socket.onmessage = (response) => {

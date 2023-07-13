@@ -5,7 +5,7 @@ function Index() {
   return (
     <Routes>
       {RouteMap.map(({ path, component: RouteComponent }) => (
-        <Route path={path} element={<RouteComponent />} />
+        <Route key={`${path}key`} path={path} element={<RouteComponent />} />
       ))}
     </Routes>
   );

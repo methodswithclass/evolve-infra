@@ -4,7 +4,7 @@ import { v4 as uuid } from 'uuid';
 function Generation(params) {
   const self = this;
 
-  const { pop, epoch, deps } = params;
+  const { pop, best, epoch, deps } = params;
   const { program, dbService } = deps;
 
   const total = program.totalPop;
@@ -44,7 +44,12 @@ function Generation(params) {
     if (_pop.length === 0) {
       for (let index = 0; index < total; index++) {
         console.log('debug create indi', index);
-        _pop[index] = new Individual({ gen: id, deps });
+        _pop[index] = new Individual({
+          dna: best?.dna,
+          fitness: best?.fitness,
+          gen: id,
+          deps,
+        });
       }
     } else {
       _pop.forEach((item) => {

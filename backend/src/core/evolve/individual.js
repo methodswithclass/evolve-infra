@@ -14,17 +14,38 @@ function Individual(params) {
   let _active = false;
   const id = uuid();
 
+  const mutate = (input) => {
+    const output = input.map((item) => {
+      if (Math.random() <= 0.01) {
+        return program?.getGene();
+      }
+      return item;
+    });
+
+    return output;
+  };
+
   const init = () => {
     if (_dna.length === 0) {
       for (let index = 0; index < total; index++) {
         _dna[index] = program?.getGene();
       }
+    } else {
+      _dna = mutate(_dna);
     }
 
     _active = true;
   };
 
   init();
+
+  const everyOther = (otherDna) => (gene, index) => {
+    return index % 2 === 0 ? otherDna[index] : gene;
+  };
+
+  const split = (otherDna) => (gene, index) => {
+    return index < otherDna.length / 2 ? gene : otherDna[index];
+  };
 
   self.setGen = (value) => {
     _gen = value;
@@ -59,13 +80,15 @@ function Individual(params) {
   };
 
   self.run = async () => {
-    const { active } = await dbService.get();
+    // const { active } = await dbService.get();
 
-    if (!active) {
-      return false;
-    }
+    // if (!active) {
+    //   return false;
+    // }
 
-    self.setFitness(program?.getGene());
+    const result = await program.run(_dna);
+
+    self.setFitness(result);
 
     return true;
   };
@@ -73,11 +96,13 @@ function Individual(params) {
   self.reproduce = (mate) => {
     const otherDna = mate.getDna();
 
-    const newDna = _dna.map((gene, index) => {
-      return index % 2 === 0 ? otherDna[index] : gene;
-    });
+    const newDna = _dna.map(
+      program?.type === 'split' ? split(otherDna) : everyOther(otherDna)
+    );
 
-    return new Individual({ dna: newDna, deps });
+    const mutated = mutate(newDna);
+
+    return new Individual({ dna: mutated, deps });
   };
 
   self.hardStop = () => {

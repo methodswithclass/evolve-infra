@@ -3,14 +3,14 @@ import Generation from './generation';
 function Epoch(params) {
   const self = this;
 
-  const { program, sendService } = params || {};
+  const { first, best, program, sendService } = params || {};
 
   const total = program?.totalGen;
   let _current = null;
   let _epoch = null;
 
   const init = () => {
-    _current = new Generation({ epoch: 1, deps: params });
+    _current = new Generation({ epoch: first, best, deps: params });
   };
 
   init();
@@ -20,16 +20,15 @@ function Epoch(params) {
     _current = _gen;
     const result = await _current.run();
 
-    await sendService.send({
-      epoch: _epoch,
-      active: result,
-      best: _current.getBest(),
-    });
-
     if (!result || _epoch >= total) {
       console.log('debug finished', _epoch);
       return;
     }
+
+    await sendService.send({
+      epoch: _epoch,
+      best: _current.getBest(),
+    });
 
     const next = _current.crossover();
 

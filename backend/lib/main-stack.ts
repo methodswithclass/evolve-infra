@@ -46,6 +46,7 @@ export class EvolveStack extends MStack {
     const runLambdaFn = this.createLambda('run', {
       policies: [executePolicy, dbPolicy],
       timeout: 900,
+      memory: 8192,
     });
 
     const stopLambdaFn = this.createLambda('stop', {
@@ -81,7 +82,7 @@ export class EvolveStack extends MStack {
   createLambda(name: string, options: any) {
     const { ENV, NAME } = this.mEnvironment;
 
-    const { policies, timeout } = options;
+    const { policies, timeout, memory = 128 } = options;
 
     const lambdaFnName = this.getName(name);
 
@@ -91,6 +92,7 @@ export class EvolveStack extends MStack {
       handler: `${name}.handler`,
       code: lambda.Code.fromAsset(path.resolve(__dirname, `../build/${name}`)),
       timeout: Duration.seconds(timeout),
+      memorySize: memory,
       environment: {
         ENV,
         NAME,
