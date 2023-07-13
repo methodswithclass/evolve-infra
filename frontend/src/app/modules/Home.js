@@ -1,14 +1,7 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 
 const Home = () => {
-  const navigate = useNavigate();
-
-  const handleClick = () => {
-    navigate('/demo');
-  };
-
   return (
     <div className="home">
       <Header />
