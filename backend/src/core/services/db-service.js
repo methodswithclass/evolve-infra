@@ -1,4 +1,10 @@
-import AWS from 'aws-sdk';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import {
+  DynamoDBDocumentClient,
+  BatchWriteCommand,
+  UpdateCommand,
+  QueryCommand,
+} from '@aws-sdk/lib-dynamodb';
 import { getEventParams } from '../../utils/request-util';
 
 const batchSize = 25;
@@ -9,7 +15,7 @@ const getDBService = (event) => {
   const TableName = `${ENV}-${NAME}-table`;
   const { id } = getEventParams(event);
 
-  const db = new AWS.DynamoDB.DocumentClient();
+  const dbClient = DynamoDBDocumentClient.from(new DynamoDBClient());
 
   const getSK = (data) => {
     const { gen, ind } = data || {};
@@ -36,7 +42,9 @@ const getDBService = (event) => {
       AttributeUpdates: params,
     };
 
-    return db.update(input).promise();
+    const command = new UpdateCommand(input);
+
+    return dbClient.send(command);
   };
 
   const list = (data) => {
@@ -54,12 +62,9 @@ const getDBService = (event) => {
       },
     };
 
-    return db
-      .query(input)
-      .promise()
-      .then((res) => {
-        return res.Items;
-      });
+    const command = new QueryCommand(input);
+
+    return dbClient.send(command).then((res) => res.Items);
   };
 
   const get = (data) => {
@@ -77,12 +82,9 @@ const getDBService = (event) => {
       },
     };
 
-    return db
-      .query(input)
-      .promise()
-      .then((res) => {
-        return res.Items[0];
-      });
+    const command = new QueryCommand(input);
+
+    return dbClient.send(command).then((res) => res.Items[0]);
   };
 
   const deleteItems = async () => {
@@ -107,7 +109,9 @@ const getDBService = (event) => {
         },
       };
 
-      return db.batchWrite(params).promise();
+      const command = new BatchWriteCommand(params);
+
+      return dbClient.send(command);
     };
 
     let begin = 0;

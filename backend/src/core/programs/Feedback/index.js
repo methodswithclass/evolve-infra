@@ -1,6 +1,6 @@
 import { sum } from '../../../utils/utils';
 
-const runProgram = async (dna) => {
+const runProgram = async ({ dna }) => {
   const check = (value) => {
     const diff = Math.abs(value - 50);
     const percent = diff / 100;

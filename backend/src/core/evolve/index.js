@@ -18,6 +18,7 @@ function Epoch(params) {
   const run = async (_gen) => {
     _epoch = _gen.getEpoch();
     _current = _gen;
+    console.log('debug epoch', _epoch);
     const result = await _current.run();
 
     if (!result || _epoch >= total) {

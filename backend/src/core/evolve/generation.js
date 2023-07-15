@@ -8,7 +8,7 @@ function Generation(params) {
   const { program, dbService } = deps;
 
   const total = program.totalPop;
-  const topPercent = 10;
+  const topPercent = 0.1;
   const parents = { a: [], b: [] };
   let _pop = pop || [];
   let _isSorted = false;
@@ -16,7 +16,7 @@ function Generation(params) {
   const id = uuid();
 
   const getRandomIndex = () => {
-    return Math.floor(Math.random() * topPercent);
+    return Math.floor(Math.random() * total * topPercent);
   };
 
   const getAnotherIndex = (first) => {
@@ -40,20 +40,21 @@ function Generation(params) {
   };
 
   const init = () => {
-    console.log('debug pop', _pop, total);
     if (_pop.length === 0) {
       for (let index = 0; index < total; index++) {
-        console.log('debug create indi', index);
         _pop[index] = new Individual({
           dna: best?.dna,
           fitness: best?.fitness,
           gen: id,
+          epoch,
+          index,
           deps,
         });
       }
     } else {
-      _pop.forEach((item) => {
+      _pop.forEach((item, index) => {
         item.setGen(id);
+        item.setIndex(index);
       });
     }
 

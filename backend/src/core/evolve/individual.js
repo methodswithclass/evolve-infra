@@ -3,21 +3,22 @@ import { v4 as uuid } from 'uuid';
 function Individual(params) {
   const self = this;
 
-  const { gen, dna, deps } = params || {};
+  const { gen, dna, epoch, index, deps } = params || {};
   const { program, dbService } = deps;
+  const { run, getGene, ...options } = program;
 
   const total = program?.totalLength;
   let _gen = gen;
   let _dna = dna || [];
+  let _index = index;
   let _fitness = 0;
-  let _index = null;
   let _active = false;
   const id = uuid();
 
   const mutate = (input) => {
     const output = input.map((item) => {
-      if (Math.random() <= 0.01) {
-        return program?.getGene();
+      if (Math.random() <= 0.02) {
+        return getGene();
       }
       return item;
     });
@@ -28,7 +29,7 @@ function Individual(params) {
   const init = () => {
     if (_dna.length === 0) {
       for (let index = 0; index < total; index++) {
-        _dna[index] = program?.getGene();
+        _dna[index] = getGene();
       }
     } else {
       _dna = mutate(_dna);
@@ -38,6 +39,10 @@ function Individual(params) {
   };
 
   init();
+
+  const setFitness = (value) => {
+    _fitness = parseInt(value, 10);
+  };
 
   const everyOther = (otherDna) => (gene, index) => {
     return index % 2 === 0 ? otherDna[index] : gene;
@@ -51,44 +56,37 @@ function Individual(params) {
     _gen = value;
   };
 
+  self.setIndex = (value) => {
+    _index = value;
+  };
+
   self.getId = () => {
     return `#${_gen}#${id}`;
   };
 
   self.getIndex = () => {
-    return _index;
-  };
-
-  self.setIndex = (value) => {
-    _index = value;
+    return `#${epoch}#${_index}`;
   };
 
   self.getDna = () => {
     return _dna;
   };
 
-  self.instruct = (value) => {
-    _dna = value;
-  };
-
   self.getFitness = () => {
     return _fitness;
   };
 
-  self.setFitness = (value) => {
-    _fitness = parseInt(value, 10);
-  };
-
   self.run = async () => {
-    // const { active } = await dbService.get();
+    const result = await run({
+      ...options,
+      index: self.getIndex(),
+      id: self.getId(),
+      dna: _dna,
+    });
 
-    // if (!active) {
-    //   return false;
-    // }
+    console.log('debug fitness', result);
 
-    const result = await program.run(_dna);
-
-    self.setFitness(result);
+    setFitness(result);
 
     return true;
   };
@@ -100,9 +98,7 @@ function Individual(params) {
       program?.type === 'split' ? split(otherDna) : everyOther(otherDna)
     );
 
-    const mutated = mutate(newDna);
-
-    return new Individual({ dna: mutated, deps });
+    return new Individual({ dna: newDna, deps });
   };
 
   self.hardStop = () => {

@@ -17,7 +17,7 @@ import { connect, send, subscribe } from '../../services/api-service';
 const width = 200;
 
 const Demo = (props) => {
-  const { name, arena: Arena } = props;
+  const { name, arena: Arena, total: trashTotal } = props;
   const [first, setFirst] = useState(1);
   const [total, setTotal] = useState(200);
   const [current, setCurrent] = useState(first);
@@ -57,7 +57,11 @@ const Demo = (props) => {
         best,
         totalGen: total,
         totalPop: 100,
-        totalLength: 100,
+        totalLength: name === 'trash' ? trashTotal : 100,
+        size: 5,
+        condition: 0.5,
+        totalRuns: 10,
+        totalSteps: 50,
       },
     };
     setDisableRun(true);
@@ -104,6 +108,7 @@ const Demo = (props) => {
     <div className={name}>
       <Header active={name} />
       <Flex flexDirection="column" align="center">
+        <Arena best={best} />
         <Flex
           m={20}
           w="100%"
@@ -149,7 +154,6 @@ const Demo = (props) => {
             <Progress w="100%" h={30} value={(current / total) * 100} />
           </Flex>
         </Flex>
-        <Arena best={best} />
       </Flex>
     </div>
   );
