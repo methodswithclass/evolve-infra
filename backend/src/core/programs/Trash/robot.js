@@ -20,6 +20,11 @@ const getRandomMove = () => {
   }
 };
 
+export const outcomes = {
+  success: ['cleaned', 'moved'],
+  fail: ['wall', 'notDirty', 'stillDirty'],
+};
+
 export const actions = [
   {
     id: 0,
@@ -107,7 +112,7 @@ const getActionById = (id) => {
 function Robot(params) {
   const self = this;
 
-  const { env, index } = params;
+  const { env, start, index } = params;
 
   let _pos = null;
   let _plan = null;
@@ -117,7 +122,7 @@ function Robot(params) {
   };
 
   const init = () => {
-    setPos({ x: 0, y: 0 });
+    setPos(start === 'random' ? env.getRandom() : { x: 0, y: 0 });
   };
 
   init();
@@ -133,12 +138,12 @@ function Robot(params) {
       newPos.y < 0 ||
       newPos.y > size - 1
     ) {
-      return 'wall';
+      return outcomes['fail'][0];
     }
 
     setPos(newPos);
 
-    return 'success';
+    return outcomes['success'][1];
   };
 
   self.getIndex = () => {

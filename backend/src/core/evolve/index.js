@@ -3,9 +3,9 @@ import Generation from './generation';
 function Epoch(params) {
   const self = this;
 
-  const { first, best, program, sendService } = params || {};
+  const { options, sendService } = params || {};
+  const { first, best, totalGen } = options;
 
-  const total = program?.totalGen;
   let _current = null;
   let _epoch = null;
 
@@ -21,7 +21,7 @@ function Epoch(params) {
     console.log('debug epoch', _epoch);
     const result = await _current.run();
 
-    if (!result || _epoch >= total) {
+    if (!result || _epoch >= totalGen) {
       console.log('debug finished', _epoch);
       return;
     }

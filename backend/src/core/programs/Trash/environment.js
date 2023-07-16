@@ -1,3 +1,5 @@
+import { outcomes } from './robot';
+
 const Block = function (x, y) {
   const self = this;
 
@@ -24,7 +26,7 @@ const Block = function (x, y) {
 function Environment(params) {
   const self = this;
 
-  const { size, condition } = params;
+  const { size, condition, beginActions } = params;
 
   let _arena = [];
   let _trash = [];
@@ -121,13 +123,13 @@ function Environment(params) {
   self.clean = (value) => {
     const block = _arena[value.x][value.y];
     if (!block.isDirty()) {
-      return 'fail';
+      return outcomes['fail'][1];
     }
     block.setClean();
     if (block.isDirty()) {
-      return 'fail';
+      return outcomes['fail'][2];
     }
-    return 'success';
+    return outcomes['success'][0];
   };
 
   self.exportArena = () => {
@@ -158,7 +160,7 @@ function Environment(params) {
 
     const index = options.reduce((accum, item, index) => {
       return accum + item * Math.pow(base, index);
-    }, 0);
+    }, beginActions);
 
     return index;
   };

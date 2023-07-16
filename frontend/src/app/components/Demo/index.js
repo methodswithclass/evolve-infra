@@ -15,14 +15,16 @@ import {
 import { connect, send, subscribe } from '../../services/api-service';
 
 const width = 200;
+const beginActions = 10;
 
 const Demo = (props) => {
   const { name, arena: Arena, total: trashTotal } = props;
   const [first, setFirst] = useState(1);
-  const [total, setTotal] = useState(200);
+  const [total, setTotal] = useState(2000);
   const [current, setCurrent] = useState(first);
   const [disableRun, setDisableRun] = useState(false);
   const [best, setBest] = useState({ fitness: 0 });
+  const [history, setHistory] = useState([]);
   const [type, setType] = useState('other');
 
   const initial = [
@@ -32,7 +34,7 @@ const Demo = (props) => {
     },
     {
       setter: setTotal,
-      value: 200,
+      value: 2000,
     },
     {
       setter: setCurrent,
@@ -46,6 +48,10 @@ const Demo = (props) => {
       setter: setType,
       value: 'other',
     },
+    {
+      setter: setHistory,
+      value: [],
+    },
   ];
 
   const handleRun = useCallback(() => {
@@ -57,11 +63,14 @@ const Demo = (props) => {
         best,
         totalGen: total,
         totalPop: 100,
-        totalLength: name === 'trash' ? trashTotal : 100,
+        totalLength: name === 'trash' ? trashTotal + beginActions : 100,
         size: 5,
         condition: 0.5,
         totalRuns: 10,
-        totalSteps: 50,
+        totalSteps: 500,
+        start: 'random',
+        beginActions,
+        fitType: 'total',
       },
     };
     setDisableRun(true);
@@ -88,6 +97,7 @@ const Demo = (props) => {
     setCurrent(curr);
     setFirst(curr + 1);
     setBest(best);
+    setHistory((prevHistory) => [...prevHistory, best.fitness]);
   };
 
   const handleTotal = (e) => {
@@ -107,8 +117,8 @@ const Demo = (props) => {
   return (
     <div className={name}>
       <Header active={name} />
-      <Flex flexDirection="column" align="center">
-        <Arena best={best} />
+      <Flex w="100%" h="100%" flexDirection="column" align="center">
+        <Arena best={best} history={history} beginActions={beginActions} />
         <Flex
           m={20}
           w="100%"

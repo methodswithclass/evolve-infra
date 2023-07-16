@@ -1,16 +1,12 @@
 import React from 'react';
-import Point from './Point';
+import Plot from '../Plot';
 
 const Feedback = (props) => {
   const { best } = props;
 
   return (
     <div className="feedbackArena">
-      <div className="points">
-        {best?.dna?.map((item, index) => (
-          <Point index={index} value={item} />
-        ))}
-      </div>
+      <Plot points={best?.dna} />
     </div>
   );
 };

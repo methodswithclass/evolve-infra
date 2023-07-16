@@ -2,8 +2,8 @@ import { response } from '../utils/response-util';
 import getSendService from '../core/services/send-service';
 import getDBService from '../core/services/db-service';
 import Evolve from '../core/evolve';
-import Feedback from '../core/programs/Feedback';
-import Trash from '../core/programs/Trash';
+import getFeedback from '../core/programs/Feedback';
+import getTrash from '../core/programs/Trash';
 
 const ACTION = 'run';
 
@@ -15,17 +15,12 @@ const handler = async (event, context) => {
     const { demo } = options;
     const dbService = getDBService(event);
     const sendService = getSendService(ACTION, event);
-    const programDemo = demo === 'trash' ? Trash : Feedback;
-    const program = {
-      ...options,
-      ...programDemo,
-    };
+    const program = demo === 'trash' ? getTrash(options) : getFeedback(options);
     const evolve = new Evolve({
-      first: options?.first,
-      best: options?.best,
+      options,
+      program,
       sendService,
       dbService,
-      program,
     });
     await dbService.update({ payload: { active: true } });
     await evolve.start();

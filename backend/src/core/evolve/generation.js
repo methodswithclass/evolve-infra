@@ -5,9 +5,9 @@ function Generation(params) {
   const self = this;
 
   const { pop, best, epoch, deps } = params;
-  const { program, dbService } = deps;
+  const { options, dbService } = deps;
 
-  const total = program.totalPop;
+  const total = options.totalPop;
   const topPercent = 0.1;
   const parents = { a: [], b: [] };
   let _pop = pop || [];
@@ -55,6 +55,7 @@ function Generation(params) {
       _pop.forEach((item, index) => {
         item.setGen(id);
         item.setIndex(index);
+        item.setEpoch(epoch);
       });
     }
 
@@ -96,7 +97,7 @@ function Generation(params) {
 
     const best = _pop[0];
 
-    console.log('debug best', best.getId());
+    // console.log('debug best', best.getId());
 
     return { dna: best.getDna(), fitness: best.getFitness() };
   };
