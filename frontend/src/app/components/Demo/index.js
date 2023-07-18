@@ -14,8 +14,15 @@ import {
 } from '@chakra-ui/react';
 import { connect, send, subscribe } from '../../services/api-service';
 
+let timer;
 const width = 200;
 const beginActions = 10;
+const refreshTime = 900 - 60;
+// const refreshTime = 10;
+
+const getRefreshTime = () => new Date().getTime() + refreshTime * 1000;
+
+const getCurrentTime = () => new Date().getTime();
 
 const Demo = (props) => {
   const { name, arena: Arena, total: trashTotal } = props;
@@ -26,6 +33,18 @@ const Demo = (props) => {
   const [best, setBest] = useState({ fitness: 0 });
   const [history, setHistory] = useState([]);
   const [type, setType] = useState('other');
+  const [refreshTime, setRefreshTime] = useState(null);
+  const [running, setRunning] = useState(false);
+  const [final, setFinal] = useState(false);
+  const [clickedStop, setClickedStop] = useState(false);
+
+  const clearTimer = () => {
+    console.log('debug clear timer', timer);
+    if (timer) {
+      clearInterval(timer);
+      timer = null;
+    }
+  };
 
   const initial = [
     {
@@ -74,11 +93,18 @@ const Demo = (props) => {
       },
     };
     setDisableRun(true);
+    setFinal(false);
+    setClickedStop(false);
+    setRefreshTime(getRefreshTime());
+    setRunning(true);
     send('run', data);
   }, [first, total, best, type]);
 
-  const handleStop = () => {
-    setDisableRun(false);
+  const handleStop = (e) => {
+    if (e) {
+      setClickedStop(true);
+      setDisableRun(false);
+    }
     send('stop');
   };
 
@@ -88,17 +114,23 @@ const Demo = (props) => {
     });
   };
 
-  const handleResponse = (data) => {
-    console.log('debug data', data);
-    const { epoch: curr, best } = data;
-    if (curr === total - 1) {
-      setDisableRun(false);
-    }
-    setCurrent(curr);
-    setFirst(curr + 1);
-    setBest(best);
-    setHistory((prevHistory) => [...prevHistory, best.fitness]);
-  };
+  const handleResponse = useCallback(
+    (data) => {
+      console.log('debug data', data);
+      const { epoch: curr, best, final: finalFromResponse } = data;
+      setCurrent(curr);
+      setFirst(curr + 1);
+      setBest(best);
+      setHistory((prevHistory) => [...prevHistory, best.fitness]);
+      setFinal(finalFromResponse);
+      if (curr === total - 1) {
+        console.log('debug stop auto');
+        setDisableRun(false);
+        setRunning(false);
+      }
+    },
+    [total]
+  );
 
   const handleTotal = (e) => {
     setTotal(e.target.value);
@@ -106,13 +138,50 @@ const Demo = (props) => {
 
   useEffect(() => {
     const close = connect();
-    const unsubRun = subscribe('run', handleResponse);
-
     return () => {
       close();
-      unsubRun();
     };
   }, []);
+
+  useEffect(() => {
+    const unsubRun = subscribe('run', handleResponse);
+    return () => {
+      unsubRun();
+    };
+  }, [handleResponse]);
+
+  useEffect(() => {
+    if (!timer && running) {
+      timer = setInterval(() => {
+        console.log('debug timer');
+        if (running) {
+          console.log('debug timer running');
+          const mill = getCurrentTime();
+          if (mill > refreshTime) {
+            handleStop();
+            clearTimer();
+          }
+        } else {
+          clearTimer();
+        }
+      }, [1000]);
+    }
+
+    return clearTimer;
+  }, [running, refreshTime]);
+
+  useEffect(() => {
+    if (running && final) {
+      setFinal(false);
+      if (clickedStop) {
+        setRunning(false);
+        clearTimer();
+        return;
+      }
+
+      handleRun();
+    }
+  }, [running, final, clickedStop]);
 
   return (
     <div className={name}>

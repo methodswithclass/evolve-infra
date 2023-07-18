@@ -23,6 +23,12 @@ function Epoch(params) {
 
     if (!result || _epoch >= totalGen) {
       console.log('debug finished', _epoch);
+      await sendService.send({
+        epoch: _epoch,
+        result,
+        final: true,
+        best: _current.getBest(),
+      });
       return;
     }
 

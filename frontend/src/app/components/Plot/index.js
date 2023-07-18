@@ -12,6 +12,9 @@ const Plot = (props) => {
     <div className="points">
       {points?.map((item, index) => (
         <Point
+          key={`${item}#${index}`}
+          x={index}
+          y={item}
           index={(index / points.length) * 100}
           value={((item - minPoint) / (maxPoint - minPoint)) * 100}
         />

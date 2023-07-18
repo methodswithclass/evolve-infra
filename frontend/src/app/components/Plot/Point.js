@@ -1,13 +1,24 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 const Point = (props) => {
-  const { index, value } = props;
+  const { index, value, x, y } = props;
+
+  const [isShown, setShown] = useState(false);
 
   return (
     <div
+      onMouseEnter={() => setShown(true)}
+      onMouseLeave={() => setShown(false)}
       className="point"
       style={{ left: `${index}%`, bottom: `${value}%` }}
-    ></div>
+    >
+      {isShown && (
+        <div className="pointPopover">
+          <div>x: {x}</div>
+          <div>y: {y}</div>
+        </div>
+      )}
+    </div>
   );
 };
 
