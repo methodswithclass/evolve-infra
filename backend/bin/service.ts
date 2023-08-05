@@ -6,15 +6,21 @@ import { MStackProps } from '../lib/patterns';
 
 const app = new App();
 
-const ENV = app.node.tryGetContext('ENV');
-const NAME = app.node.tryGetContext('NAME');
+const env = app.node.tryGetContext('env');
+const appName = app.node.tryGetContext('appName');
+const subdomain = app.node.tryGetContext('subdomain');
+const domain = app.node.tryGetContext('domain');
+const certArn = app.node.tryGetContext('certArn');
 
 const mEnvironment = {
-  ENV,
-  NAME,
+  env,
+  appName,
+  subdomain,
+  domain,
+  certArn,
 };
 
-new EvolveStack(app, `${ENV}-${NAME}-stack`, {
+new EvolveStack(app, `${env}-${appName}-stack`, {
   env: {
     account: process.env.CDK_DEFAULT_ACCOUNT,
     region: process.env.CDK_DEFAULT_REGION,

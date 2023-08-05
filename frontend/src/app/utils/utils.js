@@ -51,3 +51,12 @@ export const max = (array) => {
 
   return max;
 };
+
+export const overrideConsole = () => {
+  const console = {
+    log: () => {},
+    warn: () => {},
+    error: () => {},
+  };
+  window.console = console;
+};

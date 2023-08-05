@@ -2,11 +2,10 @@ import Point from './Point';
 import { min, max } from '../../utils/utils';
 
 const Plot = (props) => {
-  const { points } = props;
+  const { points, maxY, minY } = props;
 
-  const minPoint = min(points);
-  const maxPoint = max(points);
-  //   const maxPoint = 200;
+  const minPoint = !Number.isNaN(minY) ? minY : min(points);
+  const maxPoint = !Number.isNaN(maxY) ? maxY : max(points);
 
   return (
     <div className="points">

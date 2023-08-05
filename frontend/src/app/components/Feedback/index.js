@@ -6,7 +6,7 @@ const Feedback = (props) => {
 
   return (
     <div className="feedbackArena">
-      <Plot points={best?.dna} />
+      <Plot minY={0} maxY={100} points={best?.dna} />
     </div>
   );
 };

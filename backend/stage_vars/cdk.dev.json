@@ -2,7 +2,10 @@
     "app": "npx ts-node --prefer-ts-exts bin/service.ts",
     "requireApproval": "never",
     "context": {
-        "ENV": "dev",
-        "NAME": "evolve-infra"
+        "env": "dev",
+        "appName": "evolve-infra",
+        "subdomain": "evolution",
+        "domain": "mwclassdev.com",
+        "certArn": "arn:aws:acm:us-east-1:654627066109:certificate/fd5fc4a2-9c8d-4982-8ce1-5f7cb36d1c1d"
     }
 }

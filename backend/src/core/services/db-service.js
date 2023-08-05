@@ -10,9 +10,9 @@ import { getEventParams } from '../../utils/request-util';
 const batchSize = 25;
 
 const getDBService = (event) => {
-  const { ENV, NAME } = process.env;
+  const { env, appName } = process.env;
 
-  const TableName = `${ENV}-${NAME}-table`;
+  const TableName = `${env}-${appName}-table`;
   const { id } = getEventParams(event);
 
   const dbClient = DynamoDBDocumentClient.from(new DynamoDBClient());

@@ -20,13 +20,17 @@ export const onMessage = (data) => {
 export const connect = () => {
   socket = new WebSocket(`${wssUrl}`);
 
-  socket.onopen = () => {
-    console.log('debug connected');
+  socket.onopen = (event) => {
+    console.log('debug connected', event);
     connected = true;
   };
 
-  socket.onmessage = (response) => {
-    const data = JSON.parse(response.data);
+  socket.onerror = (event) => {
+    console.log('debug error', event);
+  };
+
+  socket.onmessage = (event) => {
+    const data = JSON.parse(event.data);
     onMessage(data);
   };
 
