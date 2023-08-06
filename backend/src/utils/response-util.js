@@ -2,7 +2,7 @@ export const response = (data) => {
   const { headers, ...rest } = data || {};
   const responseBody = {
     success: 'true',
-    data: rest,
+    ...rest,
   };
 
   const respObj = {

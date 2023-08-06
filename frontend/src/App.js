@@ -11,7 +11,7 @@ function App() {
     if (env !== 'local') {
       overrideConsole();
     }
-  });
+  }, []);
   return (
     <ChakraProvider>
       <BrowserRouter basename="/">

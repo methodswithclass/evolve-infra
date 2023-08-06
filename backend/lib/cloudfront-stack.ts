@@ -7,6 +7,7 @@ import {
   aws_certificatemanager as certificatemanager,
   aws_route53 as route53,
   Duration,
+  RemovalPolicy,
 } from 'aws-cdk-lib';
 
 export class CloudfrontStack extends MNested {
@@ -45,6 +46,7 @@ export class CloudfrontStack extends MNested {
       accessControl: BucketAccessControl.PRIVATE,
       cors: [cors],
       encryption: s3.BucketEncryption.S3_MANAGED,
+      removalPolicy: RemovalPolicy.DESTROY,
     });
 
     const originAccessIdentity = new OriginAccessIdentity(
