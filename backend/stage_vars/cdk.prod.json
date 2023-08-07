@@ -1,0 +1,11 @@
+{
+    "app": "npx ts-node --prefer-ts-exts bin/service.ts",
+    "requireApproval": "never",
+    "context": {
+        "env": "prod",
+        "appName": "evolve-infra",
+        "subdomain": "evolution",
+        "domain": "methodswithclass.com",
+        "certArn": "arn:aws:acm:us-east-1:654627066109:certificate/03218971-1d4b-4fdf-9006-22caaba6424a"
+    }
+}
