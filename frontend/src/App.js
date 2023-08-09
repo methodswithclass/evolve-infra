@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { overrideConsole } from './app/utils/utils';
 import Routes from './app/routes';
@@ -7,11 +7,9 @@ import './styles/index.scss';
 
 function App() {
   const { REACT_APP_ENV: env } = process.env;
-  useEffect(() => {
-    if (env !== 'local') {
-      overrideConsole();
-    }
-  }, []);
+  if (env !== 'local') {
+    overrideConsole();
+  }
   return (
     <ChakraProvider>
       <BrowserRouter basename="/">
