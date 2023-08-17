@@ -15,10 +15,7 @@ const handler = async (event, context) => {
     const { demo } = params;
     const dbService = getDBService(event);
     const sendService = getSendService(ACTION, event);
-    const program =
-      demo === 'trash'
-        ? getTrash(params)
-        : getFeedback(params);
+    const program = demo === 'trash' ? getTrash(params) : getFeedback(params);
     try {
       const evolve = Evolve({
         ...params,
