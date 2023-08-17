@@ -20,11 +20,6 @@ const getRandomMove = () => {
   }
 };
 
-export const outcomes = {
-  success: ['cleaned', 'moved'],
-  fail: ['wall', 'notDirty', 'stillDirty'],
-};
-
 export const actions = [
   {
     id: 0,
@@ -138,12 +133,12 @@ function Robot(params) {
       newPos.y < 0 ||
       newPos.y > size - 1
     ) {
-      return outcomes['fail'][0];
+      return 'fail';
     }
 
     setPos(newPos);
 
-    return outcomes['success'][1];
+    return 'success';
   };
 
   self.getIndex = () => {
@@ -161,6 +156,7 @@ function Robot(params) {
     const id = _plan[state];
     const action = getActionById(id);
     let result = 'success';
+    // console.log('debug action', action, id, JSON.stringify(_plan), state);
     if (action.name === 'clean') {
       result = env.clean(pre);
     } else {

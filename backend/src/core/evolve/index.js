@@ -1,54 +1,99 @@
 import Generation from './generation';
 
-function Epoch(params) {
+function Evolve(input) {
   const self = this;
 
-  const { options, sendService } = params || {};
-  const { first, best, totalGen } = options;
+  const {
+    first = 1,
+    last = 1,
+    beforeEach: userBeforeEach,
+    afterEach: userAfterEach,
+    onEnd: userOnEnd,
+  } = input || {};
 
   let _current = null;
   let _epoch = null;
+  let _active = false;
+  let _errorMessage = null;
 
-  const init = () => {
-    _current = new Generation({ epoch: first, best, deps: params });
+  const init = async () => {
+    _current = new Generation({ ...input, epoch: first });
+    _active = true;
   };
 
-  init();
+  init().catch((error) => {
+    console.error('error in init generation', _epoch, error.message);
+    _errorMessage = error.message;
+  });
+
+  const beforeEach = async (input) => {
+    if (typeof userBeforeEach === 'function') {
+      return userBeforeEach(input);
+    }
+    return null;
+  };
+
+  const afterEach = async (input) => {
+    if (typeof userAfterEach === 'function') {
+      return userAfterEach(input);
+    }
+    return null;
+  };
+
+  const onEnd = async (input) => {
+    if (typeof userOnEnd === 'function') {
+      return userOnEnd(input);
+    }
+    return null;
+  };
 
   const run = async (_gen) => {
-    _epoch = _gen.getEpoch();
+    _epoch = _gen?.getEpoch() || last;
     _current = _gen;
-    console.log('debug epoch', _epoch);
-    const result = await _current.run();
-
-    if (!result || _epoch >= totalGen) {
-      console.log('debug finished', _epoch);
-      await sendService.send({
-        epoch: _epoch,
-        result,
-        final: true,
+    await _current?.isReady();
+    console.log('current epoch', _epoch);
+    const active = await beforeEach({ first, last, generation: _epoch });
+    const result = await _current?.run(active);
+    if (!result || _epoch >= last) {
+      console.log('finished evolve', _epoch);
+      await onEnd({
+        generation: _epoch,
         best: _current.getBest(),
       });
+      self.stop();
       return;
     }
 
-    await sendService.send({
-      epoch: _epoch,
+    await afterEach({
+      generation: _epoch,
       best: _current.getBest(),
     });
 
-    const next = _current.crossover();
+    const next = await _current.crossover();
 
     await run(next);
   };
 
   self.start = async () => {
-    await run(_current);
+    try {
+      if (!_current) {
+        throw { message: `no generation: ${_errorMessage}` };
+      }
+      await run(_current);
+    } catch (error) {
+      console.error('error in run', _epoch, error.message);
+      throw { message: `error in run ${_epoch}: ${error.message}` };
+    }
   };
 
-  self.hardStop = () => {
-    _current.hardStop();
+  self.stop = () => {
+    _active = false;
+    _current.stop();
   };
 }
 
-export default Epoch;
+const init = (input) => {
+  return new Evolve(input);
+};
+
+export default init;

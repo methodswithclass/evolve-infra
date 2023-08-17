@@ -1,56 +1,105 @@
 import { v4 as uuid } from 'uuid';
 
-function Individual(params) {
+const TIMEOUT = 'TimeoutException';
+
+function Individual(input) {
   const self = this;
 
-  const { gen, dna, epoch, index, deps } = params || {};
-  const { options, program, dbService } = deps;
-  const { run, getGene } = program;
+  const {
+    epoch = 1,
+    gen = '',
+    index = 0,
+    strategy = {},
+    getFitness: userGetFitness,
+    mutate: userMutate,
+    combine: userCombine,
+  } = input || {};
 
-  const total = options?.totalLength;
+  if (!userGetFitness || !userMutate || !userCombine) {
+    throw { message: 'missing required function' };
+  }
+
   let _gen = gen;
-  let _dna = dna || [];
+  let _strategy = strategy;
   let _epoch = epoch;
   let _index = index;
   let _fitness = 0;
   let _active = false;
+  let _timeout = null;
   const id = uuid();
 
-  const mutate = (input) => {
-    const output = input.map((item, index) => {
-      if (Math.random() <= 0.02) {
-        return getGene(index);
-      }
-      return item;
-    });
+  const race = (userFn, input, timeout) => {
+    return new Promise(async (resolve, reject) => {
+      if (typeof userFn === 'function') {
+        let shouldResolve = true;
+        let shouldStop = false;
+        const start = new Date().getTime();
+        let timer = setInterval(() => {
+          const current = new Date().getTime();
 
-    return output;
+          if (shouldStop || current - start >= timeout) {
+            clearInterval(timer);
+            timer = null;
+            shouldResolve = false;
+            if (!shouldStop) {
+              reject({
+                code: TIMEOUT,
+                message: `getGene timedout after ${current - start}ms`,
+              });
+            }
+          }
+        }, 0);
+
+        const result = await userFn(input);
+        if (!shouldResolve) {
+          return;
+        }
+        shouldStop = true;
+        resolve(result);
+        return;
+      }
+
+      resolve(null);
+    });
   };
 
-  const init = () => {
-    if (_dna.length === 0) {
-      for (let index = 0; index < total; index++) {
-        _dna[index] = getGene(index);
-      }
+  const getFitness = async (input) => {
+    if (typeof userGetFitness === 'function') {
+      return userGetFitness(input);
+    }
+
+    return 0;
+  };
+
+  const mutateTimeout = userMutate?.timeout || 200;
+
+  const mutate = async (input) => {
+    return race(userMutate, input, mutateTimeout);
+  };
+
+  const combine = async (a, b) => {
+    return userCombine(a, b);
+  };
+
+  const init = async () => {
+    if (Object.keys(_strategy).length === 0) {
+      _strategy = await mutate();
     } else {
-      _dna = mutate(_dna);
+      _strategy = await mutate(_strategy);
     }
 
     _active = true;
   };
 
-  init();
+  init().catch((error) => {
+    console.error('error in individual init', error.message);
+    if (error.code === TIMEOUT) {
+      _timeout = error.message;
+    } else throw error;
+  });
 
   const setFitness = (value) => {
-    _fitness = parseInt(value, 10);
-  };
-
-  const everyOther = (otherDna) => (gene, index) => {
-    return index % 2 === 0 ? otherDna[index] : gene;
-  };
-
-  const split = (otherDna) => (gene, index) => {
-    return index < otherDna.length / 2 ? gene : otherDna[index];
+    _fitness = value;
   };
 
   self.setGen = (value) => {
@@ -66,15 +115,46 @@ function Individual(params) {
   };
 
   self.getId = () => {
-    return `#${_gen}#${id}`;
+    return `${_gen}#${id}`;
   };
 
   self.getIndex = () => {
-    return `#${_epoch}#${_index}`;
+    return `${_epoch}#${_index}`;
   };
 
-  self.getDna = () => {
-    return _dna;
+  self.isReady = async () => {
+    const promise = new Promise((resolve, reject) => {
+      let timer = setInterval(() => {
+        if (_timeout) {
+          clearInterval(timer);
+          timer = null;
+          reject({
+            code: TIMEOUT,
+            message: `individual timed out: ${_timeout}`,
+          });
+          return;
+        }
+
+        if (_active) {
+          clearInterval(timer);
+          timer = null;
+          resolve(true);
+        }
+      }, 0);
+    });
+
+    return promise.catch((error) => {
+      const index = self.getIndex();
+      console.error('error on individual ready', index);
+      if (error.code === TIMEOUT) {
+        throw error;
+      }
+      throw { message: `individual ${index} not ready` };
+    });
+  };
+
+  self.getStrategy = () => {
+    return _strategy;
   };
 
   self.getFitness = () => {
@@ -82,31 +162,34 @@ function Individual(params) {
   };
 
   self.run = async () => {
-    const result = await run({
-      ...options,
-      index: self.getIndex(),
-      id: self.getId(),
-      dna: _dna,
-    });
+    if (!_active) {
+      return false;
+    }
+    try {
+      const result = await getFitness({
+        index: self.getIndex(),
+        id: self.getId(),
+        strategy: _strategy,
+      });
 
-    // console.log('debug fitness', result);
-
-    setFitness(result);
-
-    return true;
+      setFitness(result);
+      return true;
+    } catch (error) {
+      const index = self.getIndex();
+      console.error('error getting fitness', index, error.message);
+      return false;
+    }
   };
 
-  self.reproduce = (mate) => {
-    const otherDna = mate.getDna();
+  self.reproduce = async (mate) => {
+    const otherStrategy = mate.getStrategy();
 
-    const newDna = _dna.map(
-      options?.type === 'split' ? split(otherDna) : everyOther(otherDna)
-    );
+    const newStategy = await combine(_strategy, otherStrategy);
 
-    return new Individual({ dna: newDna, deps });
+    return new Individual({ ...input, strategy: newStategy });
   };
 
-  self.hardStop = () => {
+  self.stop = () => {
     _active = false;
   };
 }

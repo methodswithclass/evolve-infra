@@ -1,24 +1,22 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import Header from '../Header';
 import {
   Flex,
   Button,
   FormControl,
   FormLabel,
   Input,
-  Radio,
-  RadioGroup,
-  Stack,
   Text,
   Progress,
 } from '@chakra-ui/react';
 import { connect, send, subscribe } from '../../services/api-service';
+import { checkMobile } from '../../utils/utils';
 
 let timer;
 const width = 200;
-const beginActions = 10;
+const beginActions = 0;
+const size = 5;
+const totalSteps = beginActions > 0 ? 70 : size * size * 2;
 const refreshTime = 900 - 60;
-// const refreshTime = 10;
 
 const getRefreshTime = () => new Date().getTime() + refreshTime * 1000;
 
@@ -32,11 +30,12 @@ const Demo = (props) => {
   const [disableRun, setDisableRun] = useState(false);
   const [best, setBest] = useState({ fitness: 0 });
   const [history, setHistory] = useState([]);
-  const [type, setType] = useState('other');
   const [refreshTime, setRefreshTime] = useState(null);
   const [running, setRunning] = useState(false);
   const [final, setFinal] = useState(false);
-  const [clickedStop, setClickedStop] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const isMobile = checkMobile();
 
   const clearTimer = () => {
     console.log('debug clear timer', timer);
@@ -64,10 +63,6 @@ const Demo = (props) => {
       value: { fitness: 0 },
     },
     {
-      setter: setType,
-      value: 'other',
-    },
-    {
       setter: setHistory,
       value: [],
     },
@@ -75,35 +70,35 @@ const Demo = (props) => {
 
   const handleRun = useCallback(() => {
     const data = {
-      options: {
+      params: {
         demo: name,
-        type,
-        first,
-        best,
-        totalGen: total,
-        totalPop: 100,
-        totalLength: name === 'trash' ? trashTotal + beginActions : 100,
-        size: 5,
+        geneTotal: name === 'trash' ? trashTotal + beginActions : 100,
+        newValue: 50,
+        maxValue: 100,
+        size,
         condition: 0.5,
-        totalRuns: 10,
-        totalSteps: 500,
-        start: 'random',
+        totalRuns: 20,
+        totalSteps,
+        start: 'origin',
         beginActions,
         fitType: 'total',
+        first,
+        last: total,
+        best,
+        popTotal: 100,
       },
     };
     setDisableRun(true);
     setFinal(false);
-    setClickedStop(false);
+    setIsRefreshing(false);
     setRefreshTime(getRefreshTime());
     setRunning(true);
     send('run', data);
-  }, [first, total, best, type]);
+  }, [first, total, best]);
 
   const handleStop = (e) => {
-    if (e) {
-      setClickedStop(true);
-      setDisableRun(false);
+    if (e === true) {
+      setIsRefreshing(true);
     }
     send('stop');
   };
@@ -117,11 +112,22 @@ const Demo = (props) => {
   const handleResponse = useCallback(
     (data) => {
       console.log('debug data', data);
-      const { epoch: curr, best, final: finalFromResponse } = data;
+      const {
+        generation: curr,
+        best,
+        final: finalFromResponse,
+        message,
+      } = data;
+      if (message) {
+        console.log('debug error in evolve', message);
+        setDisableRun(false);
+        setRunning(false);
+        return;
+      }
       setCurrent(curr);
       setFirst(curr + 1);
       setBest(best);
-      setHistory((prevHistory) => [...prevHistory, best.fitness]);
+      setHistory((prevHistory) => [...prevHistory, best?.fitness]);
       setFinal(finalFromResponse);
       if (curr === total - 1) {
         console.log('debug stop auto');
@@ -129,7 +135,7 @@ const Demo = (props) => {
         setRunning(false);
       }
     },
-    [total]
+    [total, history]
   );
 
   const handleTotal = (e) => {
@@ -157,8 +163,8 @@ const Demo = (props) => {
         if (running) {
           console.log('debug timer running');
           const mill = getCurrentTime();
-          if (mill > refreshTime) {
-            handleStop();
+          if (mill >= refreshTime) {
+            handleStop(true);
             clearTimer();
           }
         } else {
@@ -173,26 +179,25 @@ const Demo = (props) => {
   useEffect(() => {
     if (running && final) {
       setFinal(false);
-      if (clickedStop) {
+      if (!isRefreshing) {
         setRunning(false);
+        setDisableRun(false);
         clearTimer();
         return;
       }
 
       handleRun();
     }
-  }, [running, final, clickedStop]);
+  }, [running, final, isRefreshing]);
 
   return (
     <div className={name}>
-      <Header active={name} />
-      <Flex w="100%" h="100%" flexDirection="column" align="center">
-        <Arena best={best} history={history} beginActions={beginActions} />
+      <Flex w="100%" h="100%" flexDirection={`column`} align="center">
         <Flex
           m={20}
           w="100%"
           h="100%"
-          flexDirection="row"
+          flexDirection={`${isMobile ? 'column' : 'row'}`}
           align="center"
           justify="center"
         >
@@ -200,15 +205,6 @@ const Demo = (props) => {
             <FormControl m={2} w={width}>
               <FormLabel>Total</FormLabel>
               <Input value={total} onChange={handleTotal} />
-            </FormControl>
-            <FormControl m={2} w={width}>
-              <FormLabel>Type</FormLabel>
-              <RadioGroup value={type} onChange={setType}>
-                <Stack direction="column">
-                  <Radio value="other">Other</Radio>
-                  <Radio value="split">Split</Radio>
-                </Stack>
-              </RadioGroup>
             </FormControl>
             <Button m={2} w={width} isDisabled={disableRun} onClick={handleRun}>
               Run
@@ -225,14 +221,23 @@ const Demo = (props) => {
               Reset
             </Button>
           </Flex>
-          <Flex w="30%" flexDirection="column" align="center">
-            <Text m={2}>type: {type}</Text>
+          <Flex
+            w={`${isMobile ? '80%' : '30%'}`}
+            flexDirection="column"
+            align="center"
+          >
             <Text m={2}>total: {total}</Text>
-            <Text m={2}>gen: {current}</Text>
-            <Text m={2}>fitness: {best.fitness}</Text>
+            <Text m={2}>generation: {current}</Text>
+            <Text m={2}>fitness: {best?.fitness}</Text>
             <Progress w="100%" h={30} value={(current / total) * 100} />
           </Flex>
         </Flex>
+        <Arena
+          best={best}
+          history={history}
+          totalSteps={totalSteps}
+          beginActions={beginActions}
+        />
       </Flex>
     </div>
   );

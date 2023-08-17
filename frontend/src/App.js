@@ -7,9 +7,7 @@ import './styles/index.scss';
 
 function App() {
   const { REACT_APP_ENV: env } = process.env;
-  if (env !== 'local') {
-    overrideConsole();
-  }
+  overrideConsole(env !== 'local');
   return (
     <ChakraProvider>
       <BrowserRouter basename="/">

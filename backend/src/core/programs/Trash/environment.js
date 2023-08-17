@@ -123,13 +123,13 @@ function Environment(params) {
   self.clean = (value) => {
     const block = _arena[value.x][value.y];
     if (!block.isDirty()) {
-      return outcomes['fail'][1];
+      return 'fail';
     }
     block.setClean();
     if (block.isDirty()) {
-      return outcomes['fail'][2];
+      return 'fail';
     }
-    return outcomes['success'][0];
+    return 'success';
   };
 
   self.exportArena = () => {

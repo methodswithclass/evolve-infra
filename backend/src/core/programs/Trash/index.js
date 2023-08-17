@@ -1,9 +1,9 @@
 import Environment from './environment';
-import Robot, { actions, outcomes } from './robot';
-import { average, sum, max } from '../../../utils/utils';
+import Robot, { actions } from './robot';
+import { average } from '../../../utils/utils';
 
-const Runs = (params) => {
-  const { size, condition, totalRuns, start, index, beginActions } = params;
+const Runs = (input) => {
+  const { size, condition, totalRuns, start, index, beginActions } = input;
 
   const create = (i) => {
     const env = new Environment({ size, condition, beginActions });
@@ -20,143 +20,54 @@ const Runs = (params) => {
   return robots;
 };
 
-const processOutcomes = ({ accum = 0, result, count = 'none', action }) => {
-  Object.entries(outcomes).forEach(([outcome, names]) => {
-    if (outcome === 'success') {
-      switch (result) {
-        case names[0]: // cleaned
-          if (action) {
-            accum += action.points.success;
-            break;
-          }
-          accum += count === 0 ? -100 : count * 10;
-          break;
-        case names[1]: // moved
-          // points = accum + (count !== 'none' && count > 100 ? count * -5 : 0);
-          break;
-        default:
-      }
-    } else if (outcome === 'fail') {
-      switch (result) {
-        case names[0]: // wall
-          if (action) {
-            accum += action.points.fail;
-            break;
-          }
-          accum += count < 3 ? 100 : count * -5;
-          break;
-        case names[1]: // notDirty
-          if (action) {
-            accum += action.points.fail;
-            break;
-          }
-          accum += count < 3 ? 100 : count * -5;
-          break;
-        case names[2]: // stillDirty
-          break;
-        default:
-      }
-    }
-  });
-
-  return accum;
-};
-
-const performStepByTotal = (params) => {
-  const { robot, index, fit, run, step } = params;
-
+const performStep = (input) => {
+  const { robot, index, run, step } = input;
   const { result, action } = robot.update();
-
-  const { total = 0 } = fit;
-
-  // console.log('debug step', index, run, step, total);
-
-  fit.total = processOutcomes({ accum: total, result, action });
-
-  // console.log('debug step', index, run, step, fit.total);
+  return action.points[result];
 };
 
-const performStepByResult = (params) => {
-  const { robot, fit } = params;
+const performRun = (input) => {
+  const { robot, dna, total, index, run } = input;
 
-  const { action, result } = robot.update();
+  robot.instruct(dna);
 
-  if (!fit[result]) {
-    fit[result] = [];
-  }
-
-  fit[result].push(action);
-};
-
-const performRun = (params) => {
-  const { robot, dna, beginActions, index, run, performStep } = params;
+  let fit = 0;
 
   return new Promise((resolve) => {
-    robot.instruct(dna);
-
-    let fit = {};
-
-    for (let i = 0; i < average(dna.slice(0, beginActions)); i++) {
-      performStep({ ...params, fit, run, step: i });
+    for (let i = 0; i < total; i++) {
+      fit += performStep({ ...input, run, step: i });
     }
 
-    // console.log('debug run', index, run, fit);
-
-    if (Number.isInteger(fit.total)) {
-      resolve(fit);
-      return;
-    }
-
-    const fitObj = Object.entries(fit).reduce((accum, [key, value]) => {
-      return { ...accum, [key]: { count: value.length, action: value[0] } };
-    }, {});
-
-    resolve(fitObj);
+    resolve(fit);
   });
-};
-
-const processRuns = (params, fits, fn) => {
-  const { index } = params;
-  if (Number.isInteger(fits[0].total)) {
-    const totalFit = fits.map((fit) => {
-      // console.log('debug fit', index, fit);
-      return fit.total;
-    });
-
-    return fn(totalFit);
-  }
-
-  const totalFit = fits.reduce((accum, fit) => {
-    Object.entries(fit).forEach(([result, value]) => {
-      const { count } = value;
-      if (!accum[result]) {
-        accum[result] = [];
-      }
-      accum[result].push(count);
-    });
-    return accum;
-  }, {});
-
-  const finalFit = Object.entries(totalFit).reduce((accum, [result, fit]) => {
-    const count = fn(fit);
-    // console.log('debug result', index, result, count, accum);
-    return processOutcomes({ accum, result, count });
-  }, 0);
-
-  return finalFit;
 };
 
 const getTrashProgram = (options) => {
-  const { beginActions, totalSteps, fitType = 'total' } = options;
+  const {
+    beginActions,
+    totalSteps,
+    popTotal,
+    geneTotal,
+    fitType = 'total',
+  } = options;
 
-  const run = async (params) => {
-    const robots = Runs(params);
+  const getFitness = async (input) => {
+    const { strategy } = input;
+
+    if (!strategy) {
+      return 0;
+    }
+
+    const { dna, steps } = strategy;
+
+    const robots = Runs({ ...input, ...options });
 
     const promises = robots.map((robot, index) => {
       return performRun({
-        ...params,
-        performStep:
-          fitType === 'total' ? performStepByTotal : performStepByResult,
+        ...input,
+        ...options,
+        dna,
+        total: steps?.length > 0 ? average(steps) : totalSteps,
         robot,
         run: index,
       });
@@ -164,17 +75,98 @@ const getTrashProgram = (options) => {
 
     const fits = await Promise.all(promises);
 
-    return processRuns(params, fits, average);
+    return average(fits);
   };
 
-  const getGene = (index) => {
-    if (index < beginActions) {
-      return Math.floor(Math.random() * totalSteps) + 20;
+  const getGene = () => {
+    const value = Math.floor(Math.random() * actions.length);
+    return value;
+  };
+
+  const getSteps = () => {
+    return Math.floor(Math.random() * totalSteps) + 20;
+  };
+
+  const mutate = async (strategy) => {
+    const newDna = [];
+    const newSteps = [];
+
+    if (!strategy) {
+      for (let i = 0; i < geneTotal; i++) {
+        newDna.push(getGene());
+      }
+
+      for (let i = 0; i < beginActions; i++) {
+        newSteps.push(getSteps());
+      }
+
+      return { dna: newDna, steps: newSteps };
     }
-    return Math.floor(Math.random() * actions.length);
+
+    const { dna, steps } = strategy;
+
+    const mutatedDna = dna.map((item) => {
+      if (Math.random() < 0.02) {
+        return getGene();
+      }
+
+      return item;
+    });
+
+    const mutatedSteps = steps.map((item) => {
+      if (Math.random() < 0.02) {
+        return getSteps();
+      }
+
+      return item;
+    });
+
+    return { dna: mutatedDna, steps: mutatedSteps };
   };
 
-  return { getGene, run };
+  const combineDna = (dna, otherDna) => {
+    const getRand = (max, min = 0) => {
+      return Math.floor(Math.random() * (max - min)) + min;
+    };
+
+    const lenMax = 12;
+    const lenMin = 2;
+    const segNumMax = Math.floor(popTotal / lenMax / 2);
+    const segNumMin = 5;
+
+    const segNum = getRand(segNumMax, segNumMin);
+
+    const tempDna = [...dna];
+
+    for (let i = 0; i < segNum; i++) {
+      const rand = getRand(popTotal);
+      const len = getRand(lenMax, lenMin);
+      const segment = otherDna.slice(rand, rand + len);
+
+      tempDna.splice(rand, len, ...segment);
+    }
+
+    const newDna = tempDna.slice(0, dna.length);
+    return newDna;
+  };
+
+  const combineSteps = (steps, otherSteps) => {
+    return steps.map((item, index) => {
+      return index % 2 === 0 ? steps[index] : otherSteps[index];
+    });
+  };
+
+  const combine = (a, b) => {
+    const { dna, steps } = a;
+    const { dna: otherDna, steps: otherSteps } = b;
+
+    const newDna = combineDna(dna, otherDna);
+    const newSteps = combineSteps(steps, otherSteps);
+
+    return { dna: newDna, steps: newSteps };
+  };
+
+  return { mutate, getFitness, combine };
 };
 
 export default getTrashProgram;

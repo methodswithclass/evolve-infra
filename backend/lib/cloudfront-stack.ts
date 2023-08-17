@@ -18,7 +18,7 @@ export class CloudfrontStack extends MNested {
   }
 
   createCloudfront() {
-    const { subdomain, domain, certArn } = this.mEnvironment;
+    const { env, subdomain, domain, certArn } = this.mEnvironment;
 
     const { Bucket, BucketAccessControl, BlockPublicAccess, HttpMethods } = s3;
     const { Distribution, OriginAccessIdentity } = cloudfront;
@@ -74,7 +74,10 @@ export class CloudfrontStack extends MNested {
           originId: this.getName('frontend-origin'),
         }),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-        cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+        cachePolicy:
+          env === 'dev'
+            ? cloudfront.CachePolicy.CACHING_DISABLED
+            : cloudfront.CachePolicy.CACHING_OPTIMIZED,
         cachedMethods: cloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
         allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
         edgeLambdas: [
