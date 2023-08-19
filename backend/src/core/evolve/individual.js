@@ -1,7 +1,5 @@
 import { v4 as uuid } from 'uuid';
 
-const TIMEOUT = 'TimeoutException';
-
 function Individual(input) {
   const self = this;
 
@@ -24,44 +22,8 @@ function Individual(input) {
   let _epoch = epoch;
   let _index = index;
   let _fitness = 0;
-  let _active = false;
-  let _timeout = null;
+  let _active = null;
   const id = uuid();
-
-  const race = (userFn, input, timeout) => {
-    return new Promise(async (resolve, reject) => {
-      if (typeof userFn === 'function') {
-        let shouldResolve = true;
-        let shouldStop = false;
-        const start = new Date().getTime();
-        let timer = setInterval(() => {
-          const current = new Date().getTime();
-
-          if (shouldStop || current - start >= timeout) {
-            clearInterval(timer);
-            timer = null;
-            shouldResolve = false;
-            if (!shouldStop) {
-              reject({
-                code: TIMEOUT,
-                message: `getGene timedout after ${current - start}ms`,
-              });
-            }
-          }
-        }, 0);
-
-        const result = await userFn(input);
-        if (!shouldResolve) {
-          return;
-        }
-        shouldStop = true;
-        resolve(result);
-        return;
-      }
-
-      resolve(null);
-    });
-  };
 
   const getFitness = async (input) => {
     if (typeof userGetFitness === 'function') {
@@ -71,10 +33,8 @@ function Individual(input) {
     return 0;
   };
 
-  const mutateTimeout = userMutate?.timeout || 200;
-
   const mutate = async (input) => {
-    return race(userMutate, input, mutateTimeout);
+    return userMutate(input);
   };
 
   const combine = async (a, b) => {
@@ -90,13 +50,6 @@ function Individual(input) {
 
     _active = true;
   };
-
-  init().catch((error) => {
-    console.error('error in individual init', error.message);
-    if (error.code === TIMEOUT) {
-      _timeout = error.message;
-    } else throw error;
-  });
 
   const setFitness = (value) => {
     _fitness = value;
@@ -122,37 +75,6 @@ function Individual(input) {
     return `${_epoch}#${_index}`;
   };
 
-  self.isReady = async () => {
-    const promise = new Promise((resolve, reject) => {
-      let timer = setInterval(() => {
-        if (_timeout) {
-          clearInterval(timer);
-          timer = null;
-          reject({
-            code: TIMEOUT,
-            message: `individual timed out: ${_timeout}`,
-          });
-          return;
-        }
-
-        if (_active) {
-          clearInterval(timer);
-          timer = null;
-          resolve(true);
-        }
-      }, 0);
-    });
-
-    return promise.catch((error) => {
-      const index = self.getIndex();
-      console.error('error on individual ready', index);
-      if (error.code === TIMEOUT) {
-        throw error;
-      }
-      throw { message: `individual ${index} not ready` };
-    });
-  };
-
   self.getStrategy = () => {
     return _strategy;
   };
@@ -162,6 +84,7 @@ function Individual(input) {
   };
 
   self.run = async () => {
+    await init();
     if (!_active) {
       return false;
     }

@@ -50,7 +50,6 @@ function Evolve(input) {
   const run = async (_gen) => {
     _epoch = _gen?.getEpoch() || last;
     _current = _gen;
-    await _current?.isReady();
     console.log('current epoch', _epoch);
     const active = await beforeEach({ first, last, generation: _epoch });
     const result = await _current?.run(active);

@@ -1,8 +1,6 @@
 import Individual from './individual';
 import { v4 as uuid } from 'uuid';
 
-const TIMEOUT = 'TimeoutException';
-
 const defaultRank = (a, b) => {
   return b - a;
 };
@@ -23,8 +21,7 @@ function Generation(input) {
   const parents = { a: [], b: [] };
   let _pop = pop || [];
   let _isSorted = false;
-  let _active = false;
-  let _timeout = null;
+  let _active = null;
   const id = uuid();
 
   const rank = (a, b) => {
@@ -55,7 +52,7 @@ function Generation(input) {
     }
   };
 
-  const init = async () => {
+  const init = () => {
     if (_pop.length === 0) {
       for (let index = 0; index < total; index++) {
         const newInd = new Individual({
@@ -65,8 +62,6 @@ function Generation(input) {
           index,
           ...input,
         });
-
-        await newInd.isReady();
 
         _pop[index] = newInd;
       }
@@ -81,12 +76,7 @@ function Generation(input) {
     _active = true;
   };
 
-  init().catch((error) => {
-    console.error('error in generation init', error.message);
-    if (error.code === TIMEOUT) {
-      _timeout = error.message;
-    } else throw error;
-  });
+  init();
 
   const sort = () => {
     if (!_isSorted) {
@@ -104,45 +94,6 @@ function Generation(input) {
 
   self.getEpoch = () => {
     return epoch;
-  };
-
-  self.isReady = async () => {
-    const promise = new Promise((resolve, reject) => {
-      const start = new Date().getTime();
-      let timer = setInterval(() => {
-        const current = new Date().getTime();
-
-        if (_timeout) {
-          clearInterval(timer);
-          timer = null;
-          reject({
-            code: TIMEOUT,
-            message: `generation timed out after ${
-              current - start
-            }ms: ${_timeout}`,
-          });
-          return;
-        }
-
-        if (_active) {
-          clearInterval(timer);
-          timer = null;
-          resolve(true);
-        }
-      }, 0);
-    });
-
-    return promise.catch((error) => {
-      const index = self.getEpoch();
-      console.error('error on generation ready', index);
-      if (error.code === TIMEOUT) {
-        throw {
-          code: TIMEOUT,
-          message: `generation ${index} timedout: ${error.message}`,
-        };
-      }
-      throw { message: `generation ${index} not ready` };
-    });
   };
 
   self.getPopulation = () => {
@@ -175,8 +126,6 @@ function Generation(input) {
       newIndi.setIndex(index);
       newIndi.setEpoch(epoch + 1);
 
-      await newIndi.isReady();
-
       nextGen[index] = newIndi;
     }
 
@@ -190,7 +139,7 @@ function Generation(input) {
 
     const result = await Promise.all(promises);
 
-    if (!_active || active === false) {
+    if (_active === false || active === false) {
       return false;
     }
 
