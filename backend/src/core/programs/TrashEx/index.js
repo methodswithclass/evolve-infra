@@ -10,7 +10,7 @@ const Runs = (input) => {
   const totalLength = totalRuns;
 
   const create = (i) => {
-    const total = steps;
+    const total = average(steps);
 
     const env = new Environment({ size, condition });
     const robot = new Robot({ env, start, total, index: `${index}#${i}` });
@@ -57,10 +57,10 @@ const getTrashProgram = (options) => {
     const { strategy } = input;
 
     if (!strategy) {
-      return 0;
+      return { steps: 0, fit: 0 };
     }
 
-    const { dna } = strategy;
+    const { dna, steps } = strategy;
 
     const robots = Runs({ ...input, ...options });
 
@@ -76,9 +76,30 @@ const getTrashProgram = (options) => {
 
     const fits = await Promise.all(promises);
 
-    const fit = average(fits);
+    const callback = (accum, item) => {
+      const { fit: fitness, steps } = item;
 
-    return fit;
+      let points = fitness;
+
+      if (Math.abs(50 - steps) < 0.1) {
+        points += 50;
+      } else {
+        points -= 20;
+      }
+
+      return accum + points;
+    };
+
+    const fit = average(fits);
+    const averageSteps = average(steps);
+
+    return { fit, steps: averageSteps };
+  };
+
+  const rank = (a, b) => {
+    const fitRank = b.fit - a.fit;
+
+    return fitRank;
   };
 
   const getGene = () => {
@@ -86,15 +107,25 @@ const getTrashProgram = (options) => {
     return value;
   };
 
+  const getSteps = () => {
+    return Math.floor(Math.random() * totalSteps) + 20;
+    // return 50;
+  };
+
   const mutate = async (strategy) => {
     const newDna = [];
+    const newSteps = [];
 
     if (!strategy) {
       for (let i = 0; i < geneTotal; i++) {
         newDna.push(getGene());
       }
 
-      return { dna: newDna, steps: totalSteps };
+      for (let i = 0; i < beginActions; i++) {
+        newSteps.push(getSteps());
+      }
+
+      return { dna: newDna, steps: newSteps };
     }
 
     const { dna, steps } = strategy;
@@ -107,7 +138,15 @@ const getTrashProgram = (options) => {
       return item;
     });
 
-    return { dna: mutatedDna, steps };
+    const mutatedSteps = steps.map((item) => {
+      if (Math.random() < 0.02) {
+        return getSteps();
+      }
+
+      return item;
+    });
+
+    return { dna: mutatedDna, steps: mutatedSteps };
   };
 
   const combineDna = (dna, otherDna) => {
@@ -139,16 +178,24 @@ const getTrashProgram = (options) => {
     return newDna;
   };
 
-  const combine = (a, b) => {
-    const { dna, steps } = a;
-    const { dna: otherDna } = b;
-
-    const newDna = combineDna(dna, otherDna);
-
-    return { dna: newDna, steps };
+  const combineSteps = (steps, otherSteps) => {
+    return steps.map((item, index) => {
+      return index % 2 === 0 ? item : otherSteps[index];
+    });
   };
 
-  return { mutate, getFitness, combine };
+  const combine = (a, b) => {
+    // console.log('debug combine', a, b);
+    const { dna, steps } = a;
+    const { dna: otherDna, steps: otherSteps } = b;
+
+    const newDna = combineDna(dna, otherDna);
+    const newSteps = combineSteps(steps, otherSteps);
+
+    return { dna: newDna, steps: newSteps };
+  };
+
+  return { mutate, getFitness, combine, rank };
 };
 
 export default getTrashProgram;

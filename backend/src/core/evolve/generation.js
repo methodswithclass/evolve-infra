@@ -1,19 +1,32 @@
 import Individual from './individual';
 import { v4 as uuid } from 'uuid';
 
-function Generation(params) {
+const defaultRank = (a, b) => {
+  return b - a;
+};
+
+function Generation(input) {
   const self = this;
 
-  const { pop, best, epoch, deps } = params;
-  const { options, dbService } = deps;
+  const {
+    pop = [],
+    epoch = 1,
+    best = null,
+    popTotal = 100,
+    rank: userRank = defaultRank,
+  } = input || {};
 
-  const total = options.totalPop;
+  const total = popTotal;
   const topPercent = 0.1;
   const parents = { a: [], b: [] };
   let _pop = pop || [];
   let _isSorted = false;
-  let _active = false;
+  let _active = null;
   const id = uuid();
+
+  const rank = (a, b) => {
+    return userRank(a, b);
+  };
 
   const getRandomIndex = () => {
     return Math.floor(Math.random() * total * topPercent);
@@ -42,20 +55,19 @@ function Generation(params) {
   const init = () => {
     if (_pop.length === 0) {
       for (let index = 0; index < total; index++) {
-        _pop[index] = new Individual({
-          dna: best?.dna,
-          fitness: best?.fitness,
-          gen: id,
+        const newInd = new Individual({
           epoch,
+          strategy: best?.strategy,
+          gen: id,
           index,
-          deps,
+          ...input,
         });
+
+        _pop[index] = newInd;
       }
     } else {
-      _pop.forEach((item, index) => {
+      _pop.forEach((item) => {
         item.setGen(id);
-        item.setIndex(index);
-        item.setEpoch(epoch);
       });
     }
 
@@ -69,7 +81,7 @@ function Generation(params) {
   const sort = () => {
     if (!_isSorted) {
       _pop.sort((a, b) => {
-        return b.getFitness() - a.getFitness();
+        return rank(a.getFitness(), b.getFitness());
       });
 
       _isSorted = true;
@@ -97,12 +109,10 @@ function Generation(params) {
 
     const best = _pop[0];
 
-    // console.log('debug best', best.getId());
-
-    return { dna: best.getDna(), fitness: best.getFitness() };
+    return { strategy: best.getStrategy(), fitness: best.getFitness() };
   };
 
-  self.crossover = () => {
+  self.crossover = async () => {
     sort();
 
     let nextGen = [];
@@ -111,33 +121,35 @@ function Generation(params) {
       const a = _pop[parents.a[index]];
       const b = _pop[parents.b[index]];
 
-      const newIndi = a.reproduce(b);
+      const newIndi = await a.reproduce(b);
+
+      newIndi.setIndex(index);
+      newIndi.setEpoch(epoch + 1);
 
       nextGen[index] = newIndi;
     }
 
-    return new Generation({ pop: nextGen, epoch: epoch + 1, deps });
+    return new Generation({ ...input, pop: nextGen, epoch: epoch + 1 });
   };
 
-  self.run = async () => {
-    const { active } = await dbService.get();
-
-    if (!active) {
-      return false;
-    }
-
+  self.run = async (active) => {
     const promises = _pop.map((item) => {
       return item.run();
     });
 
-    await Promise.all(promises);
-    return true;
+    const result = await Promise.all(promises);
+
+    if (_active === false || active === false) {
+      return false;
+    }
+
+    return !result.some((item) => item === false);
   };
 
-  self.hardStop = () => {
+  self.stop = () => {
     _active = false;
     _pop.forEach((item) => {
-      item.hardStop();
+      item.stop();
     });
   };
 }

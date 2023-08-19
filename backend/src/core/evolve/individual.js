@@ -1,56 +1,58 @@
 import { v4 as uuid } from 'uuid';
 
-function Individual(params) {
+function Individual(input) {
   const self = this;
 
-  const { gen, dna, epoch, index, deps } = params || {};
-  const { options, program, dbService } = deps;
-  const { run, getGene } = program;
+  const {
+    epoch = 1,
+    gen = '',
+    index = 0,
+    strategy = {},
+    getFitness: userGetFitness,
+    mutate: userMutate,
+    combine: userCombine,
+  } = input || {};
 
-  const total = options?.totalLength;
+  if (!userGetFitness || !userMutate || !userCombine) {
+    throw { message: 'missing required function' };
+  }
+
   let _gen = gen;
-  let _dna = dna || [];
+  let _strategy = strategy;
   let _epoch = epoch;
   let _index = index;
   let _fitness = 0;
-  let _active = false;
+  let _active = null;
   const id = uuid();
 
-  const mutate = (input) => {
-    const output = input.map((item, index) => {
-      if (Math.random() <= 0.02) {
-        return getGene(index);
-      }
-      return item;
-    });
+  const getFitness = async (input) => {
+    if (typeof userGetFitness === 'function') {
+      return userGetFitness(input);
+    }
 
-    return output;
+    return 0;
   };
 
-  const init = () => {
-    if (_dna.length === 0) {
-      for (let index = 0; index < total; index++) {
-        _dna[index] = getGene(index);
-      }
+  const mutate = async (input) => {
+    return userMutate(input);
+  };
+
+  const combine = async (a, b) => {
+    return userCombine(a, b);
+  };
+
+  const init = async () => {
+    if (Object.keys(_strategy).length === 0) {
+      _strategy = await mutate();
     } else {
-      _dna = mutate(_dna);
+      _strategy = await mutate(_strategy);
     }
 
     _active = true;
   };
 
-  init();
-
   const setFitness = (value) => {
-    _fitness = parseInt(value, 10);
-  };
-
-  const everyOther = (otherDna) => (gene, index) => {
-    return index % 2 === 0 ? otherDna[index] : gene;
-  };
-
-  const split = (otherDna) => (gene, index) => {
-    return index < otherDna.length / 2 ? gene : otherDna[index];
+    _fitness = value;
   };
 
   self.setGen = (value) => {
@@ -66,15 +68,15 @@ function Individual(params) {
   };
 
   self.getId = () => {
-    return `#${_gen}#${id}`;
+    return `${_gen}#${id}`;
   };
 
   self.getIndex = () => {
-    return `#${_epoch}#${_index}`;
+    return `${_epoch}#${_index}`;
   };
 
-  self.getDna = () => {
-    return _dna;
+  self.getStrategy = () => {
+    return _strategy;
   };
 
   self.getFitness = () => {
@@ -82,31 +84,35 @@ function Individual(params) {
   };
 
   self.run = async () => {
-    const result = await run({
-      ...options,
-      index: self.getIndex(),
-      id: self.getId(),
-      dna: _dna,
-    });
+    await init();
+    if (!_active) {
+      return false;
+    }
+    try {
+      const result = await getFitness({
+        index: self.getIndex(),
+        id: self.getId(),
+        strategy: _strategy,
+      });
 
-    // console.log('debug fitness', result);
-
-    setFitness(result);
-
-    return true;
+      setFitness(result);
+      return true;
+    } catch (error) {
+      const index = self.getIndex();
+      console.error('error getting fitness', index, error.message);
+      return false;
+    }
   };
 
-  self.reproduce = (mate) => {
-    const otherDna = mate.getDna();
+  self.reproduce = async (mate) => {
+    const otherStrategy = mate.getStrategy();
 
-    const newDna = _dna.map(
-      options?.type === 'split' ? split(otherDna) : everyOther(otherDna)
-    );
+    const newStrategy = await combine(_strategy, otherStrategy);
 
-    return new Individual({ dna: newDna, deps });
+    return new Individual({ ...input, strategy: newStrategy });
   };
 
-  self.hardStop = () => {
+  self.stop = () => {
     _active = false;
   };
 }
