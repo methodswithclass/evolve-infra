@@ -32,6 +32,7 @@
     "@aws-sdk/client-apigatewaymanagementapi": "^3.370.0",
     "@aws-sdk/client-dynamodb": "^3.370.0",
     "@aws-sdk/lib-dynamodb": "^3.370.0",
+    "@methodswithclass/evolve": "^7.0.2",
     "aws-cdk-lib": "2.87.0",
     "aws-crt": "^1.15.20",
     "constructs": "^10.0.0",
