@@ -3,6 +3,7 @@ import getSendService from '../core/services/send-service';
 import getDBService from '../core/services/db-service';
 import Evolve from '../core/evolve';
 import getFeedback from '../core/programs/Feedback';
+import getTrashEx from '../core/programs/TrashEx';
 import getTrash from '../core/programs/Trash';
 
 const ACTION = 'run';
@@ -15,7 +16,12 @@ const handler = async (event, context) => {
     const { demo } = params;
     const dbService = getDBService(event);
     const sendService = getSendService(ACTION, event);
-    const program = demo === 'trash' ? getTrash(params) : getFeedback(params);
+    const program =
+      demo === 'trash'
+        ? getTrash(params)
+        : demo === 'trash-ex'
+        ? getTrashEx(params)
+        : getFeedback(params);
     try {
       const evolve = Evolve({
         ...params,

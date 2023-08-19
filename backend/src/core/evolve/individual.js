@@ -184,9 +184,9 @@ function Individual(input) {
   self.reproduce = async (mate) => {
     const otherStrategy = mate.getStrategy();
 
-    const newStategy = await combine(_strategy, otherStrategy);
+    const newStrategy = await combine(_strategy, otherStrategy);
 
-    return new Individual({ ...input, strategy: newStategy });
+    return new Individual({ ...input, strategy: newStrategy });
   };
 
   self.stop = () => {

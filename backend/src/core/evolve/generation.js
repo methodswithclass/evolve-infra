@@ -13,7 +13,7 @@ function Generation(input) {
   const {
     pop = [],
     epoch = 1,
-    best = {},
+    best = null,
     popTotal = 100,
     rank: userRank = defaultRank,
   } = input || {};

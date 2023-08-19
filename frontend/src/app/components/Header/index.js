@@ -11,6 +11,7 @@ import {
 } from '@chakra-ui/react';
 import { HamburgerIcon } from '@chakra-ui/icons';
 import { useNavigate } from 'react-router-dom';
+import routes from '../../routes/route-map';
 import { checkMobile } from '../../utils/utils';
 
 const Header = (props) => {
@@ -26,20 +27,15 @@ const Header = (props) => {
     navigate('/home');
   };
 
-  const menu = [
-    {
-      id: 'feedback',
-      title: 'Feedback',
-      active: active === 'feedback',
-      onClick: () => navigate('/feedback'),
-    },
-    {
-      id: 'trash',
-      title: 'Trash Pickup',
-      active: active === 'trash',
-      onClick: () => navigate('/trash-pickup'),
-    },
-  ];
+  const menu = routes
+    .filter((item) => item.menu)
+    .map((item) => {
+      return {
+        ...item,
+        active: active === item.id,
+        onClick: () => navigate(`/${item.path}`),
+      };
+    });
 
   return (
     <>

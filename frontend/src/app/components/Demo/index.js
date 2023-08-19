@@ -13,9 +13,10 @@ import { checkMobile } from '../../utils/utils';
 
 let timer;
 const width = 200;
-const beginActions = 0;
+const beginActions = 20;
 const size = 5;
-const totalSteps = beginActions > 0 ? 70 : size * size * 2;
+const totalSteps = size * size * 2;
+const steps = beginActions > 0 ? 200 : totalSteps;
 const refreshTime = 900 - 60;
 
 const getRefreshTime = () => new Date().getTime() + refreshTime * 1000;
@@ -72,13 +73,13 @@ const Demo = (props) => {
     const data = {
       params: {
         demo: name,
-        geneTotal: name === 'trash' ? trashTotal + beginActions : 100,
+        geneTotal: name === 'feedback' ? 100 : trashTotal,
         newValue: 50,
         maxValue: 100,
         size,
         condition: 0.5,
         totalRuns: 20,
-        totalSteps,
+        totalSteps: name === 'trash' ? totalSteps : steps,
         start: 'origin',
         beginActions,
         fitType: 'total',
@@ -127,7 +128,10 @@ const Demo = (props) => {
       setCurrent(curr);
       setFirst(curr + 1);
       setBest(best);
-      setHistory((prevHistory) => [...prevHistory, best?.fitness]);
+      setHistory((prevHistory) => [
+        ...prevHistory,
+        name === 'trash-ex' ? best?.fitness.fit : best?.fitness,
+      ]);
       setFinal(finalFromResponse);
       if (curr === total - 1) {
         console.log('debug stop auto');
@@ -135,7 +139,7 @@ const Demo = (props) => {
         setRunning(false);
       }
     },
-    [total, history]
+    [total, history, name]
   );
 
   const handleTotal = (e) => {
@@ -191,7 +195,7 @@ const Demo = (props) => {
   }, [running, final, isRefreshing]);
 
   return (
-    <div className={name}>
+    <div className="demo">
       <Flex w="100%" h="100%" flexDirection={`column`} align="center">
         <Flex
           m={20}
@@ -228,14 +232,17 @@ const Demo = (props) => {
           >
             <Text m={2}>total: {total}</Text>
             <Text m={2}>generation: {current}</Text>
-            <Text m={2}>fitness: {best?.fitness}</Text>
+            <Text m={2}>
+              fitness:
+              {name === 'trash-ex' ? best?.fitness?.fit : best?.fitness}
+            </Text>
             <Progress w="100%" h={30} value={(current / total) * 100} />
           </Flex>
         </Flex>
         <Arena
           best={best}
           history={history}
-          totalSteps={totalSteps}
+          totalSteps={name === 'trash-ex' ? steps : totalSteps}
           beginActions={beginActions}
         />
       </Flex>

@@ -1,12 +1,12 @@
 import React from 'react';
 import { Flex, Button } from '@chakra-ui/react';
 import Plot from '../Plot';
-import { checkMobile } from '../../utils/utils';
+import { average, checkMobile } from '../../utils/utils';
 
 const showSimulation = false;
 
 const Trash = (props) => {
-  const { history, totalSteps } = props;
+  const { best, history, totalSteps, beginActions } = props;
 
   const isMobile = checkMobile();
 
@@ -43,7 +43,8 @@ const Trash = (props) => {
         }`}
       >
         <div className={`${isMobile ? 'trashData-mobile' : 'trashData'}`}>
-          steps: {totalSteps}
+          steps:
+          {beginActions > 0 ? average(best?.strategy?.steps) : totalSteps}
         </div>
         <div className="trashplot">
           <Plot points={history} />

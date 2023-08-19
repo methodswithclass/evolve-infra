@@ -10,44 +10,52 @@ export const sum = (array) => {
   return sum;
 };
 
-export const average = (array) => {
+export const average = (array, callback) => {
   if (!array || array.length === 0) {
     return 0;
   }
 
-  const total = sum(array);
+  const sum = array.reduce((accum, item) => {
+    return typeof callback === 'function'
+      ? callback(accum, item)
+      : accum + item;
+  }, 0);
 
-  return total / array.length;
+  return sum / array.length;
 };
 
 export const min = (array) => {
   let min = 100;
+  let minIndex = 0;
 
   if (!array || array.length === 0) {
     return min;
   }
 
-  array.forEach((item) => {
+  array.forEach((item, index) => {
     if (item < min) {
       min = item;
+      minIndex = index;
     }
   });
 
-  return min;
+  return { min, index: minIndex };
 };
 
 export const max = (array) => {
   let max = 0;
+  let maxIndex = 0;
 
   if (!array || array.length === 0) {
     return max;
   }
 
-  array.forEach((item) => {
+  array.forEach((item, index) => {
     if (item > max) {
       max = item;
+      maxIndex = index;
     }
   });
 
-  return max;
+  return { max, index: maxIndex };
 };
