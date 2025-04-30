@@ -1,4 +1,4 @@
-import { outcomes } from './robot';
+import { outcomes } from "./robot";
 
 const Block = function (x, y) {
   const self = this;
@@ -123,13 +123,13 @@ function Environment(params) {
   self.clean = (value) => {
     const block = _arena[value.x][value.y];
     if (!block.isDirty()) {
-      return 'fail';
+      return "fail";
     }
     block.setClean();
     if (block.isDirty()) {
-      return 'fail';
+      return "fail";
     }
-    return 'success';
+    return "success";
   };
 
   self.exportArena = () => {

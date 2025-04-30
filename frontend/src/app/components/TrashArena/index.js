@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { Flex, Button } from "@chakra-ui/react";
+import { Flex, Button, Text } from "@chakra-ui/react";
 import Plot from "../Plot";
 import Grid from "../Grid";
 import { send, subscribe } from "../../services/api-service";
@@ -14,6 +14,7 @@ const Trash = (props) => {
   const [running, setRunning] = useState(false);
   const [grid, setGrid] = useState([]);
   const [robot, setRobot] = useState({ x: 0, y: 0 });
+  const [totalFit, setTotalFit] = useState(0);
 
   const createGrid = () => {
     const data = {
@@ -51,18 +52,19 @@ const Trash = (props) => {
   const handleStep = useCallback(
     (data) => {
       console.log("debug data", data);
-      const { step: stepNum, grid, robot, message } = data;
+      const { stepNum, grid, robot, fit, message } = data;
       if (message) {
         console.log("debug error in evolve", message);
         return;
       }
 
-      setGrid(JSON.parse(grid));
-      setRobot(JSON.parse(robot));
+      setGrid(grid);
+      setRobot(robot);
+      setTotalFit(totalFit + fit);
 
       if (running && stepNum < 50) {
         setTimeout(() => {
-          step({ grid, robot, stepNum: stepNum + 1 });
+          step({ grid, robot, dna: best?.strategy?.dna, stepNum: stepNum + 1 });
         }, intervalTime);
       }
     },
@@ -92,10 +94,10 @@ const Trash = (props) => {
     {
       id: "play",
       title: "Play",
-      enabled: best?.dna?.length > 0,
+      enabled: best?.strategy?.dna?.length > 0,
       onClick: () => {
         setRunning(true);
-        step({ stepNum: 1, grid, robot, dna: best });
+        step({ stepNum: 1, grid, robot, dna: best?.strategy?.dna });
       },
     },
     {
@@ -130,6 +132,10 @@ const Trash = (props) => {
               {item.title}
             </Button>
           ))}
+        </Flex>
+        <Flex direction="row" justify="center" align="center">
+          <Text>Score:</Text>
+          <Text>{totalFit}</Text>
         </Flex>
         <Grid grid={grid} robot={robot} />
       </Flex>

@@ -71,6 +71,7 @@ const Demo = (props) => {
         maxValue: 100,
         width: 5,
         height: 5,
+        size,
         trashRate: 0.5,
         totalRuns: 20,
         totalSteps: name === "trash" ? totalSteps : steps,
