@@ -1,18 +1,8 @@
-import React from 'react';
-import {
-  Flex,
-  Button,
-  Drawer,
-  DrawerBody,
-  DrawerOverlay,
-  DrawerContent,
-  DrawerCloseButton,
-  useDisclosure,
-} from '@chakra-ui/react';
-import { HamburgerIcon } from '@chakra-ui/icons';
-import { useNavigate } from 'react-router-dom';
-import routes from '../../routes/route-map';
-import { checkMobile } from '../../utils/utils';
+import React from "react";
+import { Flex, Button, Drawer, useDisclosure } from "@chakra-ui/react";
+// import { HamburgerIcon } from "@chakra-ui/icons";
+import { useNavigate } from "react-router-dom";
+import { checkMobile } from "../../utils/utils";
 
 const Header = (props) => {
   const { active } = props;
@@ -24,18 +14,23 @@ const Header = (props) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   const handleBack = () => {
-    navigate('/home');
+    navigate("/home");
   };
 
-  const menu = routes
-    .filter((item) => item.menu)
-    .map((item) => {
-      return {
-        ...item,
-        active: active === item.id,
-        onClick: () => navigate(`/${item.path}`),
-      };
-    });
+  const menu = [
+    {
+      id: "trash",
+      title: "Trash Pickup",
+      active: active === "trash",
+      onClick: () => navigate(`/trash-pickup`),
+    },
+    {
+      id: "feedback",
+      title: "Feedback",
+      active: active === "feedback",
+      onClick: () => navigate(`/feedback`),
+    },
+  ];
 
   return (
     <>
@@ -43,33 +38,30 @@ const Header = (props) => {
         <>
           <Flex w="100%" h="50px" justify="end">
             <Button w="50px" h="50px" right="50px" bg="white" onClick={onOpen}>
-              <HamburgerIcon />
+              Settings
             </Button>
           </Flex>
-          <Drawer isOpen={isOpen} placement="right" onClose={onClose}>
-            <DrawerOverlay />
-            <DrawerContent>
-              <DrawerCloseButton />
-              <DrawerBody>
-                <Flex w="100%" h="100%" flexDirection={`column`} align="center">
-                  <div className="headerTitle-mobile" onClick={handleBack}>
-                    <div>Evolution</div>
-                  </div>
-                  {menu.map((item) => (
-                    <Button
-                      key={item.id}
-                      size="sm"
-                      m="20px 0"
-                      colorScheme={item.active ? 'blue' : 'gray'}
-                      onClick={item.onClick}
-                    >
-                      {item.title}
-                    </Button>
-                  ))}
-                </Flex>
-              </DrawerBody>
-            </DrawerContent>
-          </Drawer>
+          <Drawer.Root isOpen={isOpen} placement="right" onClose={onClose}>
+            <Drawer.CloseTrigger />
+            <Drawer.Content>
+              <Flex w="100%" h="100%" flexDirection={`column`} align="center">
+                <div className="headerTitle-mobile" onClick={handleBack}>
+                  <div>Evolution</div>
+                </div>
+                {menu.map((item) => (
+                  <Button
+                    key={item.id}
+                    size="sm"
+                    m="20px 0"
+                    bgColor={item.active ? "blue" : "gray"}
+                    onClick={item.onClick}
+                  >
+                    {item.title}
+                  </Button>
+                ))}
+              </Flex>
+            </Drawer.Content>
+          </Drawer.Root>
         </>
       ) : (
         <div className="navContainer">
@@ -82,7 +74,7 @@ const Header = (props) => {
                 <Button
                   key={item.id}
                   size="sm"
-                  colorScheme={item.active ? 'blue' : 'gray'}
+                  bgColor={item.active ? "#3182ce" : "gray"}
                   onClick={item.onClick}
                 >
                   {item.title}

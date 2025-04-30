@@ -1,40 +1,39 @@
-const path = require('path');
+const path = require("path");
 
-const SRC_DIR = path.resolve(__dirname, 'src');
-const OUT_DIR = path.resolve(__dirname, 'build');
+const SRC_DIR = path.resolve(__dirname, "src");
+const OUT_DIR = path.resolve(__dirname, "build");
 
 module.exports = {
   entry: {
-    connect: path.resolve(SRC_DIR, 'functions/connect'),
-    disconnect: path.resolve(SRC_DIR, 'functions/disconnect'),
-    run: path.resolve(SRC_DIR, 'functions/run'),
-    stop: path.resolve(SRC_DIR, 'functions/stop'),
-    'origin-request': path.resolve(SRC_DIR, 'functions/origin-request'),
+    connect: path.resolve(SRC_DIR, "functions/connect"),
+    disconnect: path.resolve(SRC_DIR, "functions/disconnect"),
+    process: path.resolve(SRC_DIR, "functions/process"),
+    "origin-request": path.resolve(SRC_DIR, "functions/origin-request"),
   },
   output: {
     path: OUT_DIR,
-    filename: '[name]/[name].js',
-    library: '[name]',
-    libraryTarget: 'umd',
+    filename: "[name]/[name].js",
+    library: "[name]",
+    libraryTarget: "umd",
   },
-  mode: 'development',
+  mode: "development",
   optimization: {
     minimize: false,
   },
-  target: 'node',
+  target: "node",
   module: {
     rules: [
       {
         test: /\.js$/,
         exclude: /(node_modules|bower_components)/,
         use: {
-          loader: 'babel-loader',
+          loader: "babel-loader",
           options: {
             presets: [
               [
-                '@babel/preset-env',
+                "@babel/preset-env",
                 {
-                  targets: { node: '18' },
+                  targets: { node: "18" },
                   modules: false,
                 },
               ],

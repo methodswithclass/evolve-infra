@@ -83,3 +83,17 @@ export var checkMobile = () => {
 
   return checkAgent(navigator.userAgent || window.opera);
 };
+
+export const formatNumber = (number) => {
+  if (!number) {
+    return "0.0";
+  }
+
+  if (number.includes(".")) {
+    const digit = number.split(".")[0] || "0";
+    const decimal = number.split(".")[1] || "0";
+    return `${digit}.${decimal}`;
+  }
+
+  return `${number}.0`;
+};

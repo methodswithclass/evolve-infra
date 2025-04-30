@@ -1,8 +1,8 @@
-import { Construct } from 'constructs';
-import { MStackProps, MNested, MFunction } from './patterns';
-import { aws_iam as iam } from 'aws-cdk-lib';
-import { WebSocketApi, WebSocketStage } from '@aws-cdk/aws-apigatewayv2-alpha';
-import { WebSocketLambdaIntegration } from '@aws-cdk/aws-apigatewayv2-integrations-alpha';
+import { Construct } from "constructs";
+import { MStackProps, MNested, MFunction } from "./patterns";
+import { aws_iam as iam } from "aws-cdk-lib";
+import { WebSocketApi, WebSocketStage } from "@aws-cdk/aws-apigatewayv2-alpha";
+import { WebSocketLambdaIntegration } from "@aws-cdk/aws-apigatewayv2-integrations-alpha";
 
 export class ApiStack extends MNested {
   readonly api: WebSocketApi;
@@ -18,24 +18,24 @@ export class ApiStack extends MNested {
     const executePolicy = new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       resources: [`arn:aws:execute-api:us-east-1:654627066109:*`],
-      actions: ['execute-api:Invoke', 'execute-api:ManageConnections'],
+      actions: ["execute-api:Invoke", "execute-api:ManageConnections"],
     });
 
     const dbPolicy = new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       resources: [`arn:aws:dynamodb:us-east-1:654627066109:table/${tableName}`],
       actions: [
-        'dynamodb:UpdateItem',
-        'dynamodb:Query',
-        'dynamodb:BatchWriteItem',
-        'dynamodb:DeleteItem',
+        "dynamodb:UpdateItem",
+        "dynamodb:Query",
+        "dynamodb:BatchWriteItem",
+        "dynamodb:DeleteItem",
       ],
     });
 
-    const connectLambda = new MFunction(this, `${this.getName('connect')}-fn`, {
+    const connectLambda = new MFunction(this, `${this.getName("connect")}-fn`, {
       mEnvironment: {
         ...this.mEnvironment,
-        name: 'connect',
+        name: "connect",
         options: {
           policies: [executePolicy, dbPolicy],
         },
@@ -45,11 +45,11 @@ export class ApiStack extends MNested {
     // this.createLambda('connect', );
     const disconnectLambda = new MFunction(
       this,
-      `${this.getName('disconnect')}-fn`,
+      `${this.getName("disconnect")}-fn`,
       {
         mEnvironment: {
           ...this.mEnvironment,
-          name: 'disconnect',
+          name: "disconnect",
           options: {
             policies: [executePolicy, dbPolicy],
           },
@@ -57,10 +57,10 @@ export class ApiStack extends MNested {
       }
     );
 
-    const runLambda = new MFunction(this, `${this.getName('run')}-fn`, {
+    const processLambda = new MFunction(this, `${this.getName("process")}-fn`, {
       mEnvironment: {
         ...this.mEnvironment,
-        name: 'run',
+        name: "process",
         options: {
           policies: [executePolicy, dbPolicy],
           timeout: 900,
@@ -69,22 +69,12 @@ export class ApiStack extends MNested {
       },
     });
 
-    const stopLambda = new MFunction(this, `${this.getName('stop')}-fn`, {
-      mEnvironment: {
-        ...this.mEnvironment,
-        name: 'stop',
-        options: {
-          policies: [executePolicy, dbPolicy],
-        },
-      },
-    });
-
-    const { api, stage } = this.createWebSocket('ws-api', {
+    const { api, stage } = this.createWebSocket("ws-api", {
       standard: {
         connect: connectLambda.function,
         disconnect: disconnectLambda.function,
       },
-      additional: { run: runLambda.function, stop: stopLambda.function },
+      additional: { process: processLambda.function },
     });
 
     this.api = api;
@@ -94,7 +84,7 @@ export class ApiStack extends MNested {
   createWebSocket(name: string, options: any) {
     const apiName = this.getName(name);
 
-    const { standard, additional = {} } = options;
+    const { standard, additional } = options;
 
     const { connect, disconnect } = standard;
 
@@ -102,20 +92,20 @@ export class ApiStack extends MNested {
       apiName,
       connectRouteOptions: {
         integration: new WebSocketLambdaIntegration(
-          'connect-integration',
+          "connect-integration",
           connect
         ),
       },
       disconnectRouteOptions: {
         integration: new WebSocketLambdaIntegration(
-          'disconnect-integration',
+          "disconnect-integration",
           disconnect
         ),
       },
     });
     const stage = new WebSocketStage(this, `${apiName}-stage`, {
       webSocketApi,
-      stageName: 'prod',
+      stageName: "prod",
       autoDeploy: true,
     });
 

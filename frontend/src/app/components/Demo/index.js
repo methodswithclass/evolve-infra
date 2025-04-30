@@ -1,15 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Flex,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  Text,
-  Progress,
-} from '@chakra-ui/react';
-import { connect, send, subscribe } from '../../services/api-service';
-import { checkMobile } from '../../utils/utils';
+import React, { useState, useEffect, useCallback } from "react";
+import { Flex, Button, Field, Text, Progress } from "@chakra-ui/react";
+import { connect, send, subscribe } from "../../services/api-service";
+import { checkMobile, formatNumber } from "../../utils/utils";
+import { blue1 } from "../../utils/constants";
 
 let timer;
 const width = 200;
@@ -39,7 +32,7 @@ const Demo = (props) => {
   const isMobile = checkMobile();
 
   const clearTimer = () => {
-    console.log('debug clear timer', timer);
+    console.log("debug clear timer", timer);
     if (timer) {
       clearInterval(timer);
       timer = null;
@@ -73,16 +66,17 @@ const Demo = (props) => {
     const data = {
       params: {
         demo: name,
-        geneTotal: name === 'feedback' ? 100 : trashTotal,
+        geneTotal: name === "feedback" ? 100 : trashTotal,
         newValue: 50,
         maxValue: 100,
-        size,
-        condition: 0.5,
+        width: 5,
+        height: 5,
+        trashRate: 0.5,
         totalRuns: 20,
-        totalSteps: name === 'trash' ? totalSteps : steps,
-        start: 'origin',
+        totalSteps: name === "trash" ? totalSteps : steps,
+        start: "origin",
         beginActions,
-        fitType: 'total',
+        fitType: "total",
         first,
         last: total,
         best,
@@ -94,14 +88,14 @@ const Demo = (props) => {
     setIsRefreshing(false);
     setRefreshTime(getRefreshTime());
     setRunning(true);
-    send('run', data);
+    send("run", data);
   }, [first, total, best]);
 
   const handleStop = (e) => {
     if (e === true) {
       setIsRefreshing(true);
     }
-    send('stop');
+    send("stop");
   };
 
   const handleReset = () => {
@@ -112,7 +106,7 @@ const Demo = (props) => {
 
   const handleResponse = useCallback(
     (data) => {
-      console.log('debug data', data);
+      console.log("debug data", data);
       const {
         generation: curr,
         best,
@@ -120,7 +114,7 @@ const Demo = (props) => {
         message,
       } = data;
       if (message) {
-        console.log('debug error in evolve', message);
+        console.log("debug error in evolve", message);
         setDisableRun(false);
         setRunning(false);
         return;
@@ -130,11 +124,11 @@ const Demo = (props) => {
       setBest(best);
       setHistory((prevHistory) => [
         ...prevHistory,
-        name === 'trash-ex' ? best?.fitness.fit : best?.fitness,
+        name === "trash-ex" ? best?.fitness.fit : best?.fitness,
       ]);
       setFinal(finalFromResponse);
       if (curr === total - 1) {
-        console.log('debug stop auto');
+        console.log("debug stop auto");
         setDisableRun(false);
         setRunning(false);
       }
@@ -154,7 +148,7 @@ const Demo = (props) => {
   }, []);
 
   useEffect(() => {
-    const unsubRun = subscribe('run', handleResponse);
+    const unsubRun = subscribe("run", handleResponse);
     return () => {
       unsubRun();
     };
@@ -163,9 +157,9 @@ const Demo = (props) => {
   useEffect(() => {
     if (!timer && running) {
       timer = setInterval(() => {
-        console.log('debug timer');
+        console.log("debug timer");
         if (running) {
-          console.log('debug timer running');
+          console.log("debug timer running");
           const mill = getCurrentTime();
           if (mill >= refreshTime) {
             handleStop(true);
@@ -194,55 +188,99 @@ const Demo = (props) => {
     }
   }, [running, final, isRefreshing]);
 
+  const fitness = `${name === "trash-ex" ? best?.fitness?.fit : best?.fitness}`;
+
   return (
     <div className="demo">
-      <Flex w="100%" h="100%" flexDirection={`column`} align="center">
+      <Flex w="100%" h="100%" direction="column" align="center">
         <Flex
           m={20}
           w="100%"
           h="100%"
-          flexDirection={`${isMobile ? 'column' : 'row'}`}
+          flexDirection={`${isMobile ? "column" : "row"}`}
           align="center"
           justify="center"
         >
-          <Flex w="30%" h="100%" flexDirection="column" align="center">
-            <FormControl m={2} w={width}>
-              <FormLabel>Total</FormLabel>
-              <Input value={total} onChange={handleTotal} />
-            </FormControl>
-            <Button m={2} w={width} isDisabled={disableRun} onClick={handleRun}>
+          <Flex
+            w="30%"
+            h="100%"
+            direction="column"
+            justify="center"
+            align="center"
+          >
+            <Field.Root w={width}>
+              <Field.Label>Total</Field.Label>
+              <input value={total} onChange={handleTotal} />
+            </Field.Root>
+            <Button
+              m={2}
+              w={width}
+              disabled={disableRun}
+              onClick={handleRun}
+              bgColor={blue1}
+            >
               Run
             </Button>
-            <Button m={2} w={width} onClick={handleStop}>
+            <Button m={2} w={width} onClick={handleStop} bgColor={blue1}>
               Stop
             </Button>
             <Button
               m={2}
               w={width}
-              isDisabled={disableRun}
+              disabled={disableRun}
               onClick={handleReset}
+              bgColor={blue1}
             >
               Reset
             </Button>
           </Flex>
           <Flex
-            w={`${isMobile ? '80%' : '30%'}`}
+            w={`${isMobile ? "80%" : "30%"}`}
             flexDirection="column"
             align="center"
           >
-            <Text m={2}>total: {total}</Text>
-            <Text m={2}>generation: {current}</Text>
-            <Text m={2}>
-              fitness:
-              {name === 'trash-ex' ? best?.fitness?.fit : best?.fitness}
-            </Text>
-            <Progress w="100%" h={30} value={(current / total) * 100} />
+            <Flex
+              direction="column"
+              w="100%"
+              justify="start"
+              align="space-around"
+            >
+              <Flex direction="row" w="100%" justify="start" align="center">
+                <Text w="50%" padding="0 20px" textAlign="end">
+                  total:
+                </Text>
+                <Text w="50%" padding="0 20px">
+                  {total}
+                </Text>
+              </Flex>
+              <Flex direction="row" justify="center" align="center">
+                <Text w="50%" padding="0 20px" textAlign="end">
+                  generation:
+                </Text>
+                <Text w="50%" padding="0 20px">
+                  {current}
+                </Text>
+              </Flex>
+              <Flex direction="row" justify="center" align="center">
+                <Text w="50%" padding="0 20px" textAlign="end">
+                  fitness:
+                </Text>
+                <Text w="50%" padding="0 20px">
+                  {formatNumber(fitness)}
+                </Text>
+              </Flex>
+            </Flex>
+            <Progress.Root w="100%" h={30} value={(current / total) * 100}>
+              <Progress.Track>
+                <Progress.Range />
+              </Progress.Track>
+            </Progress.Root>
           </Flex>
         </Flex>
         <Arena
           best={best}
           history={history}
-          totalSteps={name === 'trash-ex' ? steps : totalSteps}
+          totalSteps={name === "trash-ex" ? steps : totalSteps}
           beginActions={beginActions}
         />
       </Flex>

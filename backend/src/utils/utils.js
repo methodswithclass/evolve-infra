@@ -1,3 +1,5 @@
+import { actions, posMap } from "./constants";
+
 export const sum = (array) => {
   if (!array || array.length === 0) {
     return 0;
@@ -16,7 +18,7 @@ export const average = (array, callback) => {
   }
 
   const sum = array.reduce((accum, item) => {
-    return typeof callback === 'function'
+    return typeof callback === "function"
       ? callback(accum, item)
       : accum + item;
   }, 0);
@@ -58,4 +60,24 @@ export const max = (array) => {
   });
 
   return { max, index: maxIndex };
+};
+
+export const getRandomMove = () => {
+  var test = Math.random();
+
+  if (test < 0.25) {
+    return posMap["up"];
+  } else if (test < 0.5) {
+    return posMap["down"];
+  } else if (test < 0.75) {
+    return posMap["left"];
+  } else {
+    return posMap["right"];
+  }
+};
+
+export const getActionById = (id) => {
+  const action = actions.find((item) => item.id === id);
+
+  return action;
 };

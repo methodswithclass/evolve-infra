@@ -1,71 +1,138 @@
-import React from 'react';
-import { Flex, Button } from '@chakra-ui/react';
-import Plot from '../Plot';
-import { checkMobile } from '../../utils/utils';
+import React, { useEffect, useState, useCallback } from "react";
+import { Flex, Button } from "@chakra-ui/react";
+import Plot from "../Plot";
+import Grid from "../Grid";
+import { send, subscribe } from "../../services/api-service";
 
-const showSimulation = false;
+const intervalTime = 500;
 
 const Trash = (props) => {
-  const { history, totalSteps } = props;
+  const { best = [], history, totalSteps } = props;
 
-  const isMobile = checkMobile();
+  console.log("debug best", best);
+
+  const [running, setRunning] = useState(false);
+  const [grid, setGrid] = useState([]);
+  const [robot, setRobot] = useState({ x: 0, y: 0 });
+
+  const createGrid = () => {
+    const data = {
+      params: { width: 5, height: 5, trashRate: 0.5 },
+    };
+
+    send("create", data);
+  };
+
+  const step = (input) => {
+    const data = {
+      params: {
+        ...input,
+      },
+    };
+    send("step", data);
+  };
+
+  const handleConnected = (data) => {
+    const { connected } = data;
+
+    if (connected) {
+      createGrid();
+    }
+  };
+
+  const handleCreate = (data) => {
+    console.log("debug create", data);
+    const { grid, robot } = data;
+
+    setGrid(grid);
+    setRobot(robot);
+  };
+
+  const handleStep = useCallback(
+    (data) => {
+      console.log("debug data", data);
+      const { step: stepNum, grid, robot, message } = data;
+      if (message) {
+        console.log("debug error in evolve", message);
+        return;
+      }
+
+      setGrid(JSON.parse(grid));
+      setRobot(JSON.parse(robot));
+
+      if (running && stepNum < 50) {
+        setTimeout(() => {
+          step({ grid, robot, stepNum: stepNum + 1 });
+        }, intervalTime);
+      }
+    },
+    [running]
+  );
+
+  useEffect(() => {
+    const unsubConnected = subscribe("connected", handleConnected);
+    const unsubCreate = subscribe("create", handleCreate);
+    const unsubStep = subscribe("step", handleStep);
+    return () => {
+      unsubConnected();
+      unsubCreate();
+      unsubStep();
+    };
+  }, [handleStep]);
 
   const buttons = [
     {
-      id: 'reset',
-      title: 'Reset',
-      onClick: () => {},
+      id: "reset",
+      title: "Reset",
+      enabled: true,
+      onClick: () => {
+        createGrid();
+      },
     },
     {
-      id: 'play',
-      title: 'Play',
-      onClick: () => {},
+      id: "play",
+      title: "Play",
+      enabled: best?.dna?.length > 0,
+      onClick: () => {
+        setRunning(true);
+        step({ stepNum: 1, grid, robot, dna: best });
+      },
     },
     {
-      id: 'stop',
-      title: 'Stop',
-      onClick: () => {},
+      id: "stop",
+      title: "Stop",
+      enabled: running,
+      onClick: () => {
+        setRunning(false);
+      },
     },
   ];
 
   return (
-    <Flex
-      w="100%"
-      h="100%"
-      m="50px 0"
-      flexDirection={`${isMobile ? 'column' : 'row'}`}
-      justify="space-around"
-      align="center"
-    >
-      <div
-        className={`${
-          isMobile ? 'trashplot-container-mobile' : 'trashplot-container'
-        }`}
-      >
-        <div className={`${isMobile ? 'trashData-mobile' : 'trashData'}`}>
-          steps: {totalSteps}
-        </div>
+    <Flex width="100%" direction="column" justify="start" align="center">
+      <div className="trashplot-container">
+        <div className="trashData">steps: {totalSteps}</div>
         <div className="trashplot">
           <Plot points={history} />
         </div>
       </div>
 
-      {showSimulation ? (
-        <Flex
-          h={`${isMobile ? '500px' : '300px'}`}
-          flexDirection={`${isMobile ? 'column' : 'row'}`}
-          align="center"
-        >
-          <div className={`${isMobile ? 'controls-mobile' : 'controls'}`}>
-            {buttons.map((item) => (
-              <Button key={item.id} w="60%" m={5} onClick={item.onClick}>
-                {item.title}
-              </Button>
-            ))}
-          </div>
-          <div className={`grid`}></div>
+      <Flex margin="100px 0" direction="column">
+        <Flex direction="row" justify="space-around" align="center">
+          {buttons.map((item) => (
+            <Button
+              key={item.id}
+              width="25%"
+              margin="20px 10px"
+              onClick={item.onClick}
+              disabled={!item.enabled}
+            >
+              {item.title}
+            </Button>
+          ))}
         </Flex>
-      ) : null}
+        <Grid grid={grid} robot={robot} />
+      </Flex>
     </Flex>
   );
 };

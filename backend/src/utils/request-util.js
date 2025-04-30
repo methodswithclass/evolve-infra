@@ -13,10 +13,19 @@ export const getEventParams = (event) => {
   return { url, id: connectionId };
 };
 
+export const parseEvent = (event) => {
+  try {
+    return JSON.parse(event.body);
+  } catch (error) {
+    console.log(`debug error ${JSON.stringify(error)}`);
+    throw error;
+  }
+};
+
 export const getId = (data) => {
   const { sk } = data || {};
 
-  const [, gen, ind] = sk?.split('#') || [];
+  const [, gen, ind] = sk?.split("#") || [];
 
-  return { gen, ind };
+  return { gen: gen.split(":")?.[1], ind: ind.split(":")?.[1] };
 };
