@@ -3,6 +3,7 @@ import { Flex, Button, Text } from "@chakra-ui/react";
 import Plot from "../Plot";
 import Grid from "../Grid";
 import { send, subscribe } from "../../services/api-service";
+import { v4 as uuid } from "uuid";
 
 const intervalTime = 500;
 
@@ -15,6 +16,10 @@ const Trash = (props) => {
   const [grid, setGrid] = useState([]);
   const [robot, setRobot] = useState({ x: 0, y: 0 });
   const [totalFit, setTotalFit] = useState(0);
+  const [stepNumber, setStepNumber] = useState(1);
+  const [move, setMove] = useState("");
+  const [success, setSuccess] = useState("");
+  const [gridKey, setGridKey] = useState("1");
 
   const createGrid = () => {
     const data = {
@@ -47,12 +52,17 @@ const Trash = (props) => {
 
     setGrid(grid);
     setRobot(robot);
+    setTotalFit(0);
+    setStepNumber(1);
+    setMove("");
+    setSuccess("");
+    setGridKey(uuid());
   };
 
   const handleStep = useCallback(
     (data) => {
       console.log("debug data", data);
-      const { stepNum, grid, robot, fit, message } = data;
+      const { stepNum, action, result, grid, robot, fit, message } = data;
       if (message) {
         console.log("debug error in evolve", message);
         return;
@@ -60,7 +70,10 @@ const Trash = (props) => {
 
       setGrid(grid);
       setRobot(robot);
-      setTotalFit(totalFit + fit);
+      setTotalFit((prevState) => prevState + fit);
+      setStepNumber(stepNum);
+      setMove(action.title);
+      setSuccess(result);
 
       if (running && stepNum < 50) {
         setTimeout(() => {
@@ -118,13 +131,18 @@ const Trash = (props) => {
           <Plot points={history} />
         </div>
       </div>
-
-      <Flex margin="100px 0" direction="column">
-        <Flex direction="row" justify="space-around" align="center">
+      <Flex direction="row" margin="100px 0" justify="start" align="start">
+        <Flex
+          direction="column"
+          width="100px"
+          margin="200px 20px"
+          justify="space-around"
+          align="center"
+        >
           {buttons.map((item) => (
             <Button
               key={item.id}
-              width="25%"
+              width="100%"
               margin="20px 10px"
               onClick={item.onClick}
               disabled={!item.enabled}
@@ -133,11 +151,37 @@ const Trash = (props) => {
             </Button>
           ))}
         </Flex>
-        <Flex direction="row" justify="center" align="center">
-          <Text>Score:</Text>
-          <Text>{totalFit}</Text>
+
+        <Flex direction="column">
+          <Flex
+            direction="column"
+            margin="20px"
+            padding="20px"
+            justify="center"
+            align="start"
+            width="300px"
+            border="1px solid black"
+          >
+            <Flex direction="row" width="100%" justify="center" align="center">
+              <Text width="50%">Step number:</Text>
+              <Text width="50%">{stepNumber}</Text>
+            </Flex>
+            <Flex direction="row" width="100%" justify="center" align="center">
+              <Text width="50%">Action:</Text>
+              <Text width="50%">{move}</Text>
+            </Flex>
+            <Flex direction="row" width="100%" justify="center" align="center">
+              <Text width="50%">Result:</Text>
+              <Text width="50%">{success}</Text>
+            </Flex>
+            <Flex direction="row" width="100%" justify="center" align="center">
+              <Text width="50%">Score:</Text>
+              <Text width="50%">{totalFit}</Text>
+            </Flex>
+          </Flex>
+
+          <Grid key={gridKey} grid={grid} robot={robot} />
         </Flex>
-        <Grid grid={grid} robot={robot} />
       </Flex>
     </Flex>
   );

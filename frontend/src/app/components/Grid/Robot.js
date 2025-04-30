@@ -9,7 +9,7 @@ const Robot = () => {
       justify="center"
       align="center"
     >
-      <Text fontSize="40px">x</Text>
+      <Text fontSize="60px">x</Text>
     </Flex>
   );
 };

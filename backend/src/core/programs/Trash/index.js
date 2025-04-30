@@ -1,7 +1,7 @@
 import Environment from "./environment";
 import Robot from "./robot";
 import { average, getActionById } from "../../../utils/utils";
-import { actions } from "../../../utils/constants";
+import { actions } from "../../../utils/utils";
 
 const hasTrash = (rate) => {
   return Math.random() < rate;
@@ -60,14 +60,14 @@ const move = ({ diff, robot, grid }) => {
     newPos.y < 0 ||
     newPos.y > size.y - 1
   ) {
-    return "fail";
+    return { robot, result: "fail" };
   }
 
   robot = newPos;
 
   console.log("debug new pos", newPos);
 
-  return "success";
+  return { robot, result: "success" };
 };
 
 const clean = ({ grid, robot }) => {
@@ -75,10 +75,10 @@ const clean = ({ grid, robot }) => {
 
   if (block === 1) {
     grid[robot.y][robot.x] = 2;
-    return "success";
+    return { grid, result: "success" };
   }
 
-  return "fail";
+  return { grid, result: "fail" };
 };
 
 const step = (input) => {
@@ -87,15 +87,15 @@ const step = (input) => {
   const id = dna[state];
   const action = getActionById(id);
   console.log("debug step", state, id, action, dna);
-  let result = "fail";
+  let outcome;
   if (action.name === "clean") {
-    result = clean({ grid, robot });
+    outcome = clean({ grid, robot });
   } else {
     const diff = action.change();
-    result = move({ diff, robot, grid });
+    outcome = move({ diff, robot, grid });
   }
 
-  return { ...input, result, action, robot, grid };
+  return { ...input, ...outcome, action };
 };
 
 const Runs = (input) => {

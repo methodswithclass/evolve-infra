@@ -9,7 +9,7 @@ const Block = (props) => {
         style={{
           ...size,
           position: "absolute",
-          backgroundColor: block > 0 ? "red" : "gray",
+          backgroundColor: block === 1 ? "red" : block === 2 ? "green" : "gray",
           opacity: block === 2 ? 0.3 : 1,
         }}
       />
