@@ -8,7 +8,7 @@ import { v4 as uuid } from "uuid";
 const intervalTime = 500;
 
 const Trash = (props) => {
-  const { best = [], history, totalSteps } = props;
+  const { best = { fitness: 0 }, history, totalSteps } = props;
 
   console.log("debug best", best);
 
@@ -62,7 +62,7 @@ const Trash = (props) => {
   const handleStep = useCallback(
     (data) => {
       console.log("debug data", data);
-      const { stepNum, action, result, grid, robot, fit, message } = data;
+      const { stepNum, action, result, grid, robot, points, message } = data;
       if (message) {
         console.log("debug error in evolve", message);
         return;
@@ -70,7 +70,7 @@ const Trash = (props) => {
 
       setGrid(grid);
       setRobot(robot);
-      setTotalFit((prevState) => prevState + fit);
+      setTotalFit((prevState) => prevState + points);
       setStepNumber(stepNum);
       setMove(action.title);
       setSuccess(result);
@@ -126,7 +126,7 @@ const Trash = (props) => {
   return (
     <Flex width="100%" direction="column" justify="start" align="center">
       <div className="trashplot-container">
-        <div className="trashData">steps: {totalSteps}</div>
+        <div>Point History</div>
         <div className="trashplot">
           <Plot points={history} />
         </div>

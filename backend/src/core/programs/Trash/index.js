@@ -1,168 +1,59 @@
 import Environment from "./environment";
 import Robot from "./robot";
-import { average, getActionById } from "../../../utils/utils";
+import { createRandomGrid, step } from "./environment-sim";
+import { average } from "../../../utils/utils";
 import { actions } from "../../../utils/utils";
-
-const hasTrash = (rate) => {
-  return Math.random() < rate;
-};
-
-const createRandomGrid = (input) => {
-  const { width, height, trashRate } = input;
-
-  const state = [];
-  let row = [];
-
-  for (let i = 0; i < height; i++) {
-    row = [];
-    for (let j = 0; j < width; j++) {
-      row.push(hasTrash(trashRate) ? 1 : 0);
-    }
-    state.push(row);
-  }
-
-  return state;
-};
-
-const assess = ({ grid, robot }) => {
-  const base = 3;
-  const i = robot.y;
-  const j = robot.x;
-
-  console.log("debug assess", grid, robot);
-
-  const top = i === 0 ? 2 : grid[i - 1][j] === 0 ? 0 : 1;
-  const bottom = i === grid.length - 1 ? 2 : grid[i + 1][j] === 0 ? 0 : 1;
-  const left = j === 0 ? 2 : grid[i][j - 1] === 0 ? 0 : 1;
-  const right = j === grid[i].length - 1 ? 2 : grid[i][j + 1] === 0 ? 0 : 1;
-  const block = grid[i][j];
-
-  const options = [top, bottom, left, right, block];
-
-  const index = options.reduce((accum, item, index) => {
-    return accum + item * Math.pow(base, index);
-  }, 0);
-
-  console.log("debug index", index);
-
-  return index;
-};
-
-const move = ({ diff, robot, grid }) => {
-  console.log("debug move", robot, diff);
-  const size = { x: grid[0].length, y: grid.length };
-
-  const newPos = { x: robot.x + diff.x, y: robot.y + diff.y };
-
-  if (
-    newPos.x < 0 ||
-    newPos.x > size.x - 1 ||
-    newPos.y < 0 ||
-    newPos.y > size.y - 1
-  ) {
-    return { robot, result: "fail" };
-  }
-
-  robot = newPos;
-
-  console.log("debug new pos", newPos);
-
-  return { robot, result: "success" };
-};
-
-const clean = ({ grid, robot }) => {
-  const block = grid[robot.y][robot.x];
-
-  if (block === 1) {
-    grid[robot.y][robot.x] = 2;
-    return { grid, result: "success" };
-  }
-
-  return { grid, result: "fail" };
-};
-
-const step = (input) => {
-  const { grid, robot, dna } = input;
-  const state = assess({ grid, robot });
-  const id = dna[state];
-  const action = getActionById(id);
-  console.log("debug step", state, id, action, dna);
-  let outcome;
-  if (action.name === "clean") {
-    outcome = clean({ grid, robot });
-  } else {
-    const diff = action.change();
-    outcome = move({ diff, robot, grid });
-  }
-
-  return { ...input, ...outcome, action };
-};
-
-const Runs = (input) => {
-  const { strategy, size, totalRuns, trashRate, start, index } = input;
-
-  const { steps } = strategy;
-
-  const create = (i) => {
-    // const grid = createRandomGrid({ width, height, trashRate });
-    // const robot = { x: 0, y: 0 };
-    // return { grid, robot };
-    const env = new Environment({ size, condition: trashRate });
-    const robot = new Robot({
-      env,
-      start,
-      total: steps,
-      index: `${index}#${i}`,
-    });
-    return robot;
-  };
-
-  const robots = [];
-
-  for (let i = 0; i < totalRuns; i++) {
-    robots.push(create(i));
-  }
-
-  return robots;
-};
-
-const performStep = (input) => {
-  const { robot, step } = input;
-  const { result, action } = robot.update();
-  return action.points[result];
-};
-
-const performRun = async (input) => {
-  const { robot, dna, run } = input;
-
-  robot.instruct(dna);
-
-  const total = robot.getTotal();
-
-  let fit = 0;
-
-  return new Promise((resolve) => {
-    for (let i = 0; i < total; i++) {
-      fit += performStep({ ...input, run, step: i });
-    }
-
-    resolve(fit);
-  });
-};
 
 const getTrashProgram = (options) => {
   const { totalSteps, popTotal, geneTotal } = options;
 
-  const simulate = (input) => {
-    const { result, action, ...rest } = step(input);
-    return { result, action, fit: action.points[result], ...rest };
+  const Runs = (input) => {
+    const { strategy, size, totalRuns, trashRate, start, index } = input;
+
+    const { steps } = strategy;
+
+    const create = (i) => {
+      const env = new Environment({ size, condition: trashRate });
+      const robot = new Robot({
+        env,
+        start,
+        total: steps,
+        index: `${index}#${i}`,
+      });
+      return robot;
+    };
+
+    const robots = [];
+
+    for (let i = 0; i < totalRuns; i++) {
+      robots.push(create(i));
+    }
+
+    return robots;
   };
 
-  const create = ({ width, height, trashRate }) => {
-    return {
-      grid: createRandomGrid({ width, height, trashRate }),
-      robot: { x: 0, y: 0 },
-    };
+  const performStep = (input) => {
+    const { robot, step } = input;
+    const { result, action } = robot.update();
+    return action.points[result];
+  };
+
+  const performRun = async (input) => {
+    const { robot, dna, run } = input;
+
+    robot.instruct(dna);
+
+    const total = robot.getTotal();
+
+    let fit = 0;
+
+    return new Promise((resolve) => {
+      for (let i = 0; i < total; i++) {
+        fit += performStep({ ...input, run, step: i });
+      }
+
+      resolve(fit);
+    });
   };
 
   const getFitness = async (input) => {
@@ -259,6 +150,18 @@ const getTrashProgram = (options) => {
     const newDna = combineDna(dna, otherDna);
 
     return { dna: newDna, steps };
+  };
+
+  const simulate = (input) => {
+    const { result, action, ...rest } = step(input);
+    return { result, action, points: action.points[result], ...rest };
+  };
+
+  const create = ({ width, height, trashRate }) => {
+    return {
+      grid: createRandomGrid({ width, height, trashRate }),
+      robot: { x: 0, y: 0 },
+    };
   };
 
   return { mutate, getFitness, combine, simulate, create };
