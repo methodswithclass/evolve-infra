@@ -59,15 +59,15 @@ function Environment(params) {
   };
 
   const make = () => {
-    let _col = [];
+    let _row = [];
     let _array = [];
 
-    for (let i = 0; i < size; i++) {
-      _col = [];
-      for (let j = 0; j < size; j++) {
-        _col[j] = new Block(i, j);
+    for (let j = 0; j < size; j++) {
+      _row = [];
+      for (let i = 0; i < size; i++) {
+        _row[i] = new Block(i, j);
       }
-      _array[i] = _col;
+      _array[j] = _row;
     }
 
     return _array;
@@ -87,7 +87,7 @@ function Environment(params) {
 
   const placeTrash = () => {
     for (let trashLoc of _trash) {
-      _arena[trashLoc.x][trashLoc.y].setDirty();
+      _arena[trashLoc.y][trashLoc.x].setDirty();
     }
   };
 
@@ -104,7 +104,7 @@ function Environment(params) {
       return 2;
     }
 
-    if (_arena[pos.x][pos.y].isDirty()) {
+    if (_arena[pos.y][pos.x].isDirty()) {
       return 1;
     }
 
@@ -112,7 +112,7 @@ function Environment(params) {
   };
 
   const getState = (value) => {
-    const block = _arena[value.x][value.y];
+    const block = _arena[value.y][value.x];
     return block.isDirty();
   };
 
@@ -121,7 +121,7 @@ function Environment(params) {
   };
 
   self.clean = (value) => {
-    const block = _arena[value.x][value.y];
+    const block = _arena[value.y][value.x];
     if (!block.isDirty()) {
       return "fail";
     }
@@ -134,14 +134,14 @@ function Environment(params) {
 
   self.exportArena = () => {
     let _array = [];
-    let _col = [];
+    let _row = [];
 
-    for (let i = 0; i < size; i++) {
-      _col = [];
-      for (let j = 0; j < size; j++) {
-        _col[j] = { x: i, y: j, trash: getState({ x: i, y: j }) };
+    for (let j = 0; j < size; j++) {
+      _row = [];
+      for (let i = 0; i < size; i++) {
+        _row[i] = { x: i, y: j, trash: getState({ x: i, y: j }) };
       }
-      _array[i] = _col;
+      _array[i] = _row;
     }
 
     return _array;

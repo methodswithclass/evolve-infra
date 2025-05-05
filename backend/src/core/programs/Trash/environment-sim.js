@@ -10,31 +10,39 @@ export const createRandomGrid = (input) => {
   const state = [];
   let row = [];
 
-  for (let i = 0; i < height; i++) {
+  for (let j = 0; j < height; j++) {
     row = [];
-    for (let j = 0; j < width; j++) {
-      row.push(hasTrash(trashRate) ? 1 : 0);
+    for (let i = 0; i < width; i++) {
+      row[i] = hasTrash(trashRate) ? 1 : 0;
     }
-    state.push(row);
+    state[j] = row;
   }
 
   return state;
 };
 
+const check = (grid, { x, y }) => {
+  if (x < 0 || x > grid[0].length - 1 || y < 0 || y > grid.length - 1) {
+    return 2;
+  }
+
+  return grid[y][x] === 1 ? 1 : 0;
+};
+
 const assess = ({ grid, robot }) => {
   const base = 3;
-  const i = robot.y;
-  const j = robot.x;
+  const i = robot.x;
+  const j = robot.y;
 
   console.log("debug assess", grid, robot);
 
-  const top = i === 0 ? 2 : grid[i - 1][j] === 0 ? 0 : 1;
-  const bottom = i === grid.length - 1 ? 2 : grid[i + 1][j] === 0 ? 0 : 1;
-  const left = j === 0 ? 2 : grid[i][j - 1] === 0 ? 0 : 1;
-  const right = j === grid[i].length - 1 ? 2 : grid[i][j + 1] === 0 ? 0 : 1;
-  const block = grid[i][j];
-
-  const options = [top, bottom, left, right, block];
+  const options = [
+    check(grid, { x: i, y: j - 1 }),
+    check(grid, { x: i, y: j + 1 }),
+    check(grid, { x: i - 1, y: j }),
+    check(grid, { x: i + 1, y: j }),
+    check(grid, { x: i, y: j }),
+  ];
 
   const index = options.reduce((accum, item, index) => {
     return accum + item * Math.pow(base, index);

@@ -3,14 +3,13 @@ import { Flex, Button, Text } from "@chakra-ui/react";
 import Plot from "../Plot";
 import Grid from "../Grid";
 import { send, subscribe } from "../../services/api-service";
+import Select from "../Select";
 import { v4 as uuid } from "uuid";
 
 const intervalTime = 500;
 
 const Trash = (props) => {
-  const { best = { fitness: 0 }, history, totalSteps } = props;
-
-  console.log("debug best", best);
+  const { best = { fitness: 0 }, history } = props;
 
   const [running, setRunning] = useState(false);
   const [grid, setGrid] = useState([]);
@@ -20,10 +19,11 @@ const Trash = (props) => {
   const [move, setMove] = useState("");
   const [success, setSuccess] = useState("");
   const [gridKey, setGridKey] = useState("1");
+  const [width, setWidth] = useState(null);
 
   const createGrid = () => {
     const data = {
-      params: { width: 5, height: 5, trashRate: 0.5 },
+      params: { width, height: width, trashRate: 0.5 },
     };
 
     send("create", data);
@@ -42,7 +42,7 @@ const Trash = (props) => {
     const { connected } = data;
 
     if (connected) {
-      createGrid();
+      setWidth(5);
     }
   };
 
@@ -59,9 +59,12 @@ const Trash = (props) => {
     setGridKey(uuid());
   };
 
+  const onChange = (e) => {
+    setWidth(e?.value?.[0]);
+  };
+
   const handleStep = useCallback(
     (data) => {
-      console.log("debug data", data);
       const { stepNum, action, result, grid, robot, points, message } = data;
       if (message) {
         console.log("debug error in evolve", message);
@@ -75,7 +78,7 @@ const Trash = (props) => {
       setMove(action.title);
       setSuccess(result);
 
-      if (running && stepNum < 50) {
+      if (running && stepNum < width * width * 2) {
         setTimeout(() => {
           step({ grid, robot, dna: best?.strategy?.dna, stepNum: stepNum + 1 });
         }, intervalTime);
@@ -83,6 +86,11 @@ const Trash = (props) => {
     },
     [running]
   );
+
+  useEffect(() => {
+    setRunning(false);
+    createGrid();
+  }, [width]);
 
   useEffect(() => {
     const unsubConnected = subscribe("connected", handleConnected);
@@ -101,6 +109,7 @@ const Trash = (props) => {
       title: "Reset",
       enabled: true,
       onClick: () => {
+        setRunning(false);
         createGrid();
       },
     },
@@ -125,12 +134,7 @@ const Trash = (props) => {
 
   return (
     <Flex width="100%" direction="column" justify="start" align="center">
-      <div className="trashplot-container">
-        <div>Point History</div>
-        <div className="trashplot">
-          <Plot points={history} />
-        </div>
-      </div>
+      <Plot points={history} />
       <Flex direction="row" margin="100px 0" justify="start" align="start">
         <Flex
           direction="column"
@@ -153,30 +157,63 @@ const Trash = (props) => {
         </Flex>
 
         <Flex direction="column">
-          <Flex
-            direction="column"
-            margin="20px"
-            padding="20px"
-            justify="center"
-            align="start"
-            width="300px"
-            border="1px solid black"
-          >
-            <Flex direction="row" width="100%" justify="center" align="center">
-              <Text width="50%">Step number:</Text>
-              <Text width="50%">{stepNumber}</Text>
+          <Flex direction="row">
+            <Flex
+              direction="column"
+              margin="20px"
+              padding="20px"
+              justify="center"
+              align="start"
+              width="300px"
+              border="1px solid black"
+            >
+              <Flex
+                direction="row"
+                width="100%"
+                justify="center"
+                align="center"
+              >
+                <Text width="50%">Step number:</Text>
+                <Text width="50%">{stepNumber}</Text>
+              </Flex>
+              <Flex
+                direction="row"
+                width="100%"
+                justify="center"
+                align="center"
+              >
+                <Text width="50%">Action:</Text>
+                <Text width="50%">{move}</Text>
+              </Flex>
+              <Flex
+                direction="row"
+                width="100%"
+                justify="center"
+                align="center"
+              >
+                <Text width="50%">Result:</Text>
+                <Text width="50%">{success}</Text>
+              </Flex>
+              <Flex
+                direction="row"
+                width="100%"
+                justify="center"
+                align="center"
+              >
+                <Text width="50%">Score:</Text>
+                <Text width="50%">{totalFit}</Text>
+              </Flex>
             </Flex>
-            <Flex direction="row" width="100%" justify="center" align="center">
-              <Text width="50%">Action:</Text>
-              <Text width="50%">{move}</Text>
-            </Flex>
-            <Flex direction="row" width="100%" justify="center" align="center">
-              <Text width="50%">Result:</Text>
-              <Text width="50%">{success}</Text>
-            </Flex>
-            <Flex direction="row" width="100%" justify="center" align="center">
-              <Text width="50%">Score:</Text>
-              <Text width="50%">{totalFit}</Text>
+            <Flex direction="column">
+              <Select
+                items={[
+                  { label: "5", value: 5 },
+                  { label: "10", value: 10 },
+                  { label: "20", value: 20 },
+                ]}
+                value={width}
+                onChange={onChange}
+              />
             </Flex>
           </Flex>
 

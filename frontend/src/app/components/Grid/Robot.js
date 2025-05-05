@@ -1,6 +1,7 @@
 import { Flex, Text } from "@chakra-ui/react";
 
-const Robot = () => {
+const Robot = (props) => {
+  const { size } = props;
   return (
     <Flex
       direction="column"
@@ -9,7 +10,7 @@ const Robot = () => {
       justify="center"
       align="center"
     >
-      <Text fontSize="60px">x</Text>
+      <Text fontSize={`${size}px`}>x</Text>
     </Flex>
   );
 };

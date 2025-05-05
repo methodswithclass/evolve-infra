@@ -77,15 +77,9 @@ const getRandomMove = () => {
     return posMap["down"];
   } else if (test < 0.75) {
     return posMap["left"];
-  } else {
-    return posMap["right"];
   }
-};
 
-export const getActionById = (id) => {
-  const action = actions.find((item) => item.id === id);
-
-  return action;
+  return posMap["right"];
 };
 
 export const actions = [
@@ -147,20 +141,20 @@ export const actions = [
       fail: -5,
     },
   },
+  // {
+  //   id: 5,
+  //   name: "stay",
+  //   title: "stay in place",
+  //   change: () => {
+  //     return posMap["here"];
+  //   },
+  //   points: {
+  //     success: 0,
+  //     fail: -5,
+  //   },
+  // },
   {
     id: 5,
-    name: "stay",
-    title: "stay in place",
-    change: () => {
-      return posMap["here"];
-    },
-    points: {
-      success: 0,
-      fail: -5,
-    },
-  },
-  {
-    id: 6,
     name: "clean",
     title: "clean trash",
     change: () => {
@@ -172,3 +166,9 @@ export const actions = [
     },
   },
 ];
+
+export const getActionById = (id) => {
+  const action = actions.find((item) => item.id === id);
+
+  return action;
+};

@@ -7,7 +7,7 @@ const margin = 5;
 
 const Grid = (props) => {
   const { grid = [], robot = {} } = props;
-  const height = `${totalWidth / (grid.length || 1) - margin}px`;
+  const height = `${totalHeight / (grid.length || 1) - margin}`;
   return (
     <Flex
       direction="column"
@@ -17,21 +17,21 @@ const Grid = (props) => {
       align="space-around"
       border="solid black 1px"
     >
-      {grid.map((row, i) => {
-        const width = `${totalHeight / (row.length || 1) - margin}px`;
+      {grid.map((row, j) => {
+        const width = `${totalWidth / (row.length || 1) - margin}`;
         return (
           <Flex
-            key={`row${i}`}
+            key={`row${j}`}
             direction="row"
             justify="space-around"
             align="space-around"
           >
-            {row.map((block, j) => (
+            {row.map((block, i) => (
               <Block
                 key={`block${i}${j}`}
                 block={block}
                 robot={robot}
-                pos={{ x: j, y: i }}
+                pos={{ x: i, y: j }}
                 size={{ width, height }}
               />
             ))}

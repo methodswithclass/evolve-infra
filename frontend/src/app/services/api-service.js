@@ -3,7 +3,7 @@ import { STATES } from "../utils/constants";
 
 let socket;
 const receive = {};
-let state = "disconnected";
+let state = STATES.disconnected;
 let noReconnect = false;
 const wssUrl = process.env.REACT_APP_WSS_URL;
 
@@ -83,7 +83,6 @@ export const connect = () => {
 
 export const send = (route, data) => {
   const message = JSON.stringify({ action: "process", route, ...data });
-  console.log("debug send", message);
   if (isConnected()) {
     socket.send(message);
   } else {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Flex, Button, Field, Text, Progress } from "@chakra-ui/react";
+import { Flex, Button, Field, Text, Input, Progress } from "@chakra-ui/react";
 import { connect, send, subscribe } from "../../services/api-service";
 import { checkMobile, formatNumber } from "../../utils/utils";
 import { blue1 } from "../../utils/constants";
@@ -8,7 +8,7 @@ let timer;
 const width = 200;
 const beginActions = 20;
 const size = 5;
-const totalSteps = size * size * 2;
+const totalSteps = 50;
 const steps = beginActions > 0 ? 200 : totalSteps;
 const refreshTime = 900 - 60;
 
@@ -21,7 +21,7 @@ const Demo = (props) => {
   const [first, setFirst] = useState(1);
   const [total, setTotal] = useState(2000);
   const [current, setCurrent] = useState(first);
-  const [disableRun, setDisableRun] = useState(false);
+  const [disableRun, setDisableRun] = useState(true);
   const [best, setBest] = useState({ fitness: 0 });
   const [history, setHistory] = useState([]);
   const [refreshTime, setRefreshTime] = useState(null);
@@ -105,9 +105,12 @@ const Demo = (props) => {
     });
   };
 
+  const handleConnected = () => {
+    setDisableRun(false);
+  };
+
   const handleResponse = useCallback(
     (data) => {
-      console.log("debug data", data);
       const {
         generation: curr,
         best,
@@ -149,8 +152,10 @@ const Demo = (props) => {
   }, []);
 
   useEffect(() => {
+    const unsubConnected = subscribe("connected", handleConnected);
     const unsubRun = subscribe("run", handleResponse);
     return () => {
+      unsubConnected();
       unsubRun();
     };
   }, [handleResponse]);
@@ -158,9 +163,7 @@ const Demo = (props) => {
   useEffect(() => {
     if (!timer && running) {
       timer = setInterval(() => {
-        console.log("debug timer");
         if (running) {
-          console.log("debug timer running");
           const mill = getCurrentTime();
           if (mill >= refreshTime) {
             handleStop(true);
@@ -211,7 +214,7 @@ const Demo = (props) => {
           >
             <Field.Root w={width}>
               <Field.Label>Total</Field.Label>
-              <input value={total} onChange={handleTotal} />
+              <Input value={total} onChange={handleTotal} />
             </Field.Root>
             <Button
               m={2}
