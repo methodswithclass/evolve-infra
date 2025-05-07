@@ -96,6 +96,8 @@ const Trash = (props) => {
         setTimeout(() => {
           step({ grid, robot, dna: best?.strategy?.dna, stepNum: stepNum + 1 });
         }, intervalTime);
+      } else {
+        setRunning(false);
       }
     },
     [running, best]
