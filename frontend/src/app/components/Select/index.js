@@ -8,7 +8,14 @@ import {
   SelectValueText,
 } from "@chakra-ui/react";
 
-const Select = ({ items, label, value: inputValue, onChange, placeholder }) => {
+const Select = ({
+  items,
+  label,
+  value: inputValue,
+  onChange,
+  placeholder,
+  ...rest
+}) => {
   const frameworks = createListCollection({
     items,
   });
@@ -23,6 +30,7 @@ const Select = ({ items, label, value: inputValue, onChange, placeholder }) => {
       value={value}
       defaultValue={value}
       onValueChange={onChange}
+      {...rest}
     >
       <SelectLabel>{label}</SelectLabel>
       <SelectTrigger>

@@ -5,14 +5,14 @@ const hasTrash = (rate) => {
 };
 
 export const createRandomGrid = (input) => {
-  const { width, height, trashRate } = input;
+  const { size, trashRate } = input;
 
   const state = [];
   let row = [];
 
-  for (let j = 0; j < height; j++) {
+  for (let j = 0; j < size; j++) {
     row = [];
-    for (let i = 0; i < width; i++) {
+    for (let i = 0; i < size; i++) {
       row[i] = hasTrash(trashRate) ? 1 : 0;
     }
     state[j] = row;

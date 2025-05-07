@@ -3,13 +3,10 @@ import { Flex, Button, Field, Text, Input, Progress } from "@chakra-ui/react";
 import { connect, send, subscribe } from "../../services/api-service";
 import { checkMobile, formatNumber } from "../../utils/utils";
 import { blue1 } from "../../utils/constants";
+import Select from "../Select";
 
 let timer;
 const width = 200;
-const beginActions = 20;
-const size = 5;
-const totalSteps = 50;
-const steps = beginActions > 0 ? 200 : totalSteps;
 const refreshTime = 900 - 60;
 
 const getRefreshTime = () => new Date().getTime() + refreshTime * 1000;
@@ -28,8 +25,13 @@ const Demo = (props) => {
   const [running, setRunning] = useState(false);
   const [final, setFinal] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [size, setSize] = useState(5);
 
-  const isMobile = checkMobile();
+  const totalSteps = size * size * 2;
+
+  const onChange = (e) => {
+    setSize(e?.value?.[0]);
+  };
 
   const clearTimer = () => {
     console.log("debug clear timer", timer);
@@ -69,14 +71,11 @@ const Demo = (props) => {
         geneTotal: name === "feedback" ? 100 : trashTotal,
         newValue: 50,
         maxValue: 100,
-        width: 5,
-        height: 5,
         size,
         trashRate: 0.5,
         totalRuns: 20,
-        totalSteps: name === "trash" ? totalSteps : steps,
-        start: "origin",
-        beginActions,
+        totalSteps,
+        start: "random",
         fitType: "total",
         first,
         last: total,
@@ -126,10 +125,7 @@ const Demo = (props) => {
       setCurrent(curr);
       setFirst(curr + 1);
       setBest(best);
-      setHistory((prevHistory) => [
-        ...prevHistory,
-        name === "trash-ex" ? best?.fitness.fit : best?.fitness,
-      ]);
+      setHistory((prevHistory) => [...prevHistory, best?.fitness]);
       setFinal(finalFromResponse);
       if (curr === total - 1) {
         console.log("debug stop auto");
@@ -192,44 +188,50 @@ const Demo = (props) => {
     }
   }, [running, final, isRefreshing]);
 
-  const fitness = `${name === "trash-ex" ? best?.fitness?.fit : best?.fitness}`;
-
   return (
     <div className="demo">
-      <Flex w="100%" h="100%" direction="column" align="center">
+      <Flex w="100%" direction="column" align="center">
         <Flex
-          m={20}
+          m="100px 0"
           w="100%"
-          h="100%"
-          flexDirection={`${isMobile ? "column" : "row"}`}
+          direction="column"
           align="center"
           justify="center"
         >
           <Flex
-            w="30%"
+            w={width}
             h="100%"
             direction="column"
             justify="center"
             align="center"
           >
-            <Field.Root w={width}>
-              <Field.Label>Total</Field.Label>
-              <Input value={total} onChange={handleTotal} />
-            </Field.Root>
+            <Text m="0 0 10px 0">Total Generations</Text>
+            <Input value={total} onChange={handleTotal} />
+            <Text m="20px 0 10px 0">Train against</Text>
+            <Select
+              height="200px"
+              items={[
+                { label: "5", value: 5 },
+                { label: "10", value: 10 },
+                { label: "20", value: 20 },
+              ]}
+              value={size}
+              onChange={onChange}
+            />
             <Button
-              m={2}
+              m="20px"
               w={width}
               disabled={disableRun}
               onClick={handleRun}
               bgColor={blue1}
             >
-              Run
+              Train
             </Button>
-            <Button m={2} w={width} onClick={handleStop} bgColor={blue1}>
+            <Button m="20px" w={width} onClick={handleStop} bgColor={blue1}>
               Stop
             </Button>
             <Button
-              m={2}
+              m="20px"
               w={width}
               disabled={disableRun}
               onClick={handleReset}
@@ -238,55 +240,39 @@ const Demo = (props) => {
               Reset
             </Button>
           </Flex>
-          <Flex
-            w={`${isMobile ? "80%" : "30%"}`}
-            flexDirection="column"
-            align="center"
-          >
-            <Flex
-              direction="column"
-              w="100%"
-              justify="start"
-              align="space-around"
-            >
-              <Flex direction="row" w="100%" justify="start" align="center">
-                <Text w="50%" padding="0 20px" textAlign="end">
-                  total:
-                </Text>
-                <Text w="50%" padding="0 20px">
-                  {total}
-                </Text>
-              </Flex>
-              <Flex direction="row" justify="center" align="center">
-                <Text w="50%" padding="0 20px" textAlign="end">
-                  generation:
-                </Text>
-                <Text w="50%" padding="0 20px">
-                  {current}
-                </Text>
-              </Flex>
-              <Flex direction="row" justify="center" align="center">
-                <Text w="50%" padding="0 20px" textAlign="end">
-                  fitness:
-                </Text>
-                <Text w="50%" padding="0 20px">
-                  {formatNumber(fitness)}
-                </Text>
-              </Flex>
+          <Flex w="80%" m="50px 0 20px 0" direction="column" align="center">
+            <Flex direction="row" w="100%" justify="start" align="center">
+              <Text w="50%" padding="0 20px" textAlign="end">
+                total:
+              </Text>
+              <Text w="50%" padding="0 20px">
+                {total}
+              </Text>
             </Flex>
-            <Progress.Root w="100%" h={30} value={(current / total) * 100}>
+            <Flex direction="row" w="100%" justify="center" align="center">
+              <Text w="50%" padding="0 20px" textAlign="end">
+                generation:
+              </Text>
+              <Text w="50%" padding="0 20px">
+                {current}
+              </Text>
+            </Flex>
+            <Flex direction="row" w="100%" justify="center" align="center">
+              <Text w="50%" padding="0 20px" textAlign="end">
+                fitness:
+              </Text>
+              <Text w="50%" padding="0 20px">
+                {formatNumber(`${best?.fitness}`)}
+              </Text>
+            </Flex>
+            <Progress.Root w="100%" m="50px 0" value={(current / total) * 100}>
               <Progress.Track>
                 <Progress.Range />
               </Progress.Track>
             </Progress.Root>
           </Flex>
         </Flex>
-        <Arena
-          best={best}
-          history={history}
-          totalSteps={name === "trash-ex" ? steps : totalSteps}
-          beginActions={beginActions}
-        />
+        <Arena best={best} history={history} totalSteps={totalSteps} />
       </Flex>
     </div>
   );

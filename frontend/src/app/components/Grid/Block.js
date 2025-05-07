@@ -16,7 +16,7 @@ const Block = (props) => {
           backgroundColor: block === 1 ? "red" : block === 2 ? "green" : "gray",
           opacity: block === 2 ? 0.3 : 1,
         }}
-      >{`${pos.x} ${pos.y}`}</div>
+      ></div>
       {pos.x === robot.x && pos.y === robot.y ? (
         <div
           style={{

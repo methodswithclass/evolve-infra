@@ -137,7 +137,7 @@ export const actions = [
     title: "move random",
     change: getRandomMove,
     points: {
-      success: 0,
+      success: -1,
       fail: -5,
     },
   },

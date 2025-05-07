@@ -5,7 +5,7 @@ import { average } from "../../../utils/utils";
 import { actions } from "../../../utils/utils";
 
 const getTrashProgram = (options) => {
-  const { totalSteps, popTotal, geneTotal } = options;
+  const { totalSteps, geneTotal } = options;
 
   const Runs = (input) => {
     const { strategy, size, totalRuns, trashRate, start, index } = input;
@@ -33,7 +33,7 @@ const getTrashProgram = (options) => {
   };
 
   const performStep = (input) => {
-    const { robot, step } = input;
+    const { robot } = input;
     const { result, action } = robot.update();
     return action.points[result];
   };
@@ -115,32 +115,36 @@ const getTrashProgram = (options) => {
   };
 
   const combineDna = (dna, otherDna) => {
-    const getRand = (max, min = 0) => {
-      return Math.floor(Math.random() * (max - min)) + min;
-    };
+    // const getRand = (max, min = 0) => {
+    //   return Math.floor(Math.random() * (max - min)) + min;
+    // };
 
-    const lenMax = 12;
-    const lenMin = 2;
-    const segNumMax = Math.floor(popTotal / lenMax / 2);
-    const segNumMin = 5;
+    // const lenMax = 12;
+    // const lenMin = 2;
+    // const segNumMax = Math.floor(popTotal / lenMax / 2);
+    // const segNumMin = 5;
 
-    const segNum = getRand(segNumMax, segNumMin);
+    // const segNum = getRand(segNumMax, segNumMin);
 
-    const tempDna = [...dna];
+    // const tempDna = [...dna];
 
-    for (let i = 0; i < segNum; i++) {
-      const rand = getRand(popTotal);
-      const len = getRand(lenMax, lenMin);
-      const segment = otherDna.slice(rand, rand + len);
+    // for (let i = 0; i < segNum; i++) {
+    //   const rand = getRand(popTotal);
+    //   const len = getRand(lenMax, lenMin);
+    //   const segment = otherDna.slice(rand, rand + len);
 
-      tempDna.splice(rand, len, ...segment);
-    }
+    //   tempDna.splice(rand, len, ...segment);
+    // }
 
-    const limitDna = tempDna.slice(0, dna.length);
-    const rest = dna.slice(limitDna.length, dna.length) || [];
+    // const limitDna = tempDna.slice(0, dna.length);
+    // const rest = dna.slice(limitDna.length, dna.length) || [];
 
-    const newDna = [...limitDna, ...rest];
-    return newDna;
+    // const newDna = [...limitDna, ...rest];
+    // return newDna;
+
+    return dna.map((gene, index) => {
+      return Math.random() < 0.5 ? gene : otherDna[index];
+    });
   };
 
   const combine = (a, b) => {
@@ -157,9 +161,9 @@ const getTrashProgram = (options) => {
     return { result, action, points: action.points[result], ...rest };
   };
 
-  const create = ({ width, height, trashRate }) => {
+  const create = ({ size, trashRate }) => {
     return {
-      grid: createRandomGrid({ width, height, trashRate }),
+      grid: createRandomGrid({ size, trashRate }),
       robot: { x: 0, y: 0 },
     };
   };

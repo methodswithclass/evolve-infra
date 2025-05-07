@@ -9,21 +9,21 @@ import { v4 as uuid } from "uuid";
 const intervalTime = 500;
 
 const Trash = (props) => {
-  const { best = { fitness: 0 }, history } = props;
+  const { best = { fitness: 0 }, history, totalSteps } = props;
 
   const [running, setRunning] = useState(false);
   const [grid, setGrid] = useState([]);
   const [robot, setRobot] = useState({ x: 0, y: 0 });
   const [totalFit, setTotalFit] = useState(0);
   const [stepNumber, setStepNumber] = useState(1);
-  const [move, setMove] = useState("");
-  const [success, setSuccess] = useState("");
+  const [move, setMove] = useState("move down");
+  const [success, setSuccess] = useState("success");
   const [gridKey, setGridKey] = useState("1");
-  const [width, setWidth] = useState(null);
+  const [size, setSize] = useState(5);
 
   const createGrid = () => {
     const data = {
-      params: { width, height: width, trashRate: 0.5 },
+      params: { size, trashRate: 0.5 },
     };
 
     send("create", data);
@@ -42,7 +42,7 @@ const Trash = (props) => {
     const { connected } = data;
 
     if (connected) {
-      setWidth(5);
+      setSize(5);
     }
   };
 
@@ -54,13 +54,13 @@ const Trash = (props) => {
     setRobot(robot);
     setTotalFit(0);
     setStepNumber(1);
-    setMove("");
-    setSuccess("");
+    setMove("move down");
+    setSuccess("success");
     setGridKey(uuid());
   };
 
   const onChange = (e) => {
-    setWidth(e?.value?.[0]);
+    setSize(e?.value?.[0]);
   };
 
   const handleStep = useCallback(
@@ -78,7 +78,7 @@ const Trash = (props) => {
       setMove(action.title);
       setSuccess(result);
 
-      if (running && stepNum < width * width * 2) {
+      if (running && stepNum < totalSteps) {
         setTimeout(() => {
           step({ grid, robot, dna: best?.strategy?.dna, stepNum: stepNum + 1 });
         }, intervalTime);
@@ -90,7 +90,7 @@ const Trash = (props) => {
   useEffect(() => {
     setRunning(false);
     createGrid();
-  }, [width]);
+  }, [size]);
 
   useEffect(() => {
     const unsubConnected = subscribe("connected", handleConnected);
@@ -157,14 +157,14 @@ const Trash = (props) => {
         </Flex>
 
         <Flex direction="column">
-          <Flex direction="row">
+          <Flex direction="row" w="500px" justify="center" align="space-around">
             <Flex
               direction="column"
-              margin="20px"
+              margin="20px 20px 50px 20px"
               padding="20px"
               justify="center"
               align="start"
-              width="300px"
+              width="80%"
               border="1px solid black"
             >
               <Flex
@@ -173,45 +173,42 @@ const Trash = (props) => {
                 justify="center"
                 align="center"
               >
-                <Text width="50%">Step number:</Text>
-                <Text width="50%">{stepNumber}</Text>
-              </Flex>
-              <Flex
-                direction="row"
-                width="100%"
-                justify="center"
-                align="center"
-              >
-                <Text width="50%">Action:</Text>
-                <Text width="50%">{move}</Text>
-              </Flex>
-              <Flex
-                direction="row"
-                width="100%"
-                justify="center"
-                align="center"
-              >
-                <Text width="50%">Result:</Text>
-                <Text width="50%">{success}</Text>
-              </Flex>
-              <Flex
-                direction="row"
-                width="100%"
-                justify="center"
-                align="center"
-              >
-                <Text width="50%">Score:</Text>
-                <Text width="50%">{totalFit}</Text>
+                <Flex
+                  direction="column"
+                  m="0 20px"
+                  justify="start"
+                  align="end"
+                  w="50%"
+                >
+                  <Text>Step number:</Text>
+                  <Text>Action:</Text>
+                  <Text>Result:</Text>
+                  <Text>Score:</Text>
+                </Flex>
+                <Flex direction="column" justify="start" align="start" w="50%">
+                  <Text>{stepNumber}</Text>
+                  <Text>{move}</Text>
+                  <Text>{success}</Text>
+                  <Text>{totalFit}</Text>
+                </Flex>
               </Flex>
             </Flex>
-            <Flex direction="column">
+            <Flex
+              direction="column"
+              m="20px 0"
+              justify="start"
+              align="center"
+              w="40%"
+            >
+              <Text>Grid size</Text>
               <Select
+                w="100%"
                 items={[
                   { label: "5", value: 5 },
                   { label: "10", value: 10 },
                   { label: "20", value: 20 },
                 ]}
-                value={width}
+                value={size}
                 onChange={onChange}
               />
             </Flex>
