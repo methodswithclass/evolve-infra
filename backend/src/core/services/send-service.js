@@ -1,11 +1,11 @@
 import {
   ApiGatewayManagementApiClient,
   PostToConnectionCommand,
-} from '@aws-sdk/client-apigatewaymanagementapi';
-import { getEventParams } from '../../utils/request-util';
+} from "@aws-sdk/client-apigatewaymanagementapi";
+import { getEventParams } from "../../utils/request-util";
 
-const getSendService = (action, event) => {
-  const defaultData = { action };
+const getSendService = (action, route, event) => {
+  const defaultData = { action, route };
 
   const { url, id } = getEventParams(event);
 

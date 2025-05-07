@@ -1,57 +1,60 @@
-import Environment from './environment';
-import Robot, { actions } from './robot';
-import { average, max } from '../../../utils/utils';
-
-const Runs = (input) => {
-  const { strategy, size, totalRuns, condition, start, index } = input;
-
-  const { steps } = strategy;
-
-  const totalLength = totalRuns;
-
-  const create = (i) => {
-    const total = steps;
-
-    const env = new Environment({ size, condition });
-    const robot = new Robot({ env, start, total, index: `${index}#${i}` });
-    return robot;
-  };
-
-  const robots = [];
-
-  for (let i = 0; i < totalLength; i++) {
-    robots.push(create(i));
-  }
-
-  return robots;
-};
-
-const performStep = (input) => {
-  const { robot } = input;
-  const { result, action } = robot.update();
-  return action.points[result];
-};
-
-const performRun = (input) => {
-  const { robot, dna, run } = input;
-
-  robot.instruct(dna);
-
-  const total = robot.getTotal();
-
-  let fit = 0;
-
-  return new Promise((resolve) => {
-    for (let i = 0; i < total; i++) {
-      fit += performStep({ ...input, run, step: i });
-    }
-
-    resolve(fit);
-  });
-};
+import Environment from "./environment";
+import Robot from "./robot";
+import { createRandomGrid, step } from "./environment-sim";
+import { average } from "../../../utils/utils";
+import { actions } from "../../../utils/utils";
 
 const getTrashProgram = (options) => {
-  const { beginActions, totalSteps, popTotal, geneTotal } = options;
+  const { totalSteps, geneTotal } = options;
+
+  const Runs = (input) => {
+    const { strategy, size, totalRuns, trashRate, start, index } = input;
+
+    const { steps } = strategy;
+
+    const create = (i) => {
+      const env = new Environment({ size, condition: trashRate });
+      const robot = new Robot({
+        env,
+        start,
+        total: steps,
+        index: `${index}#${i}`,
+      });
+      return robot;
+    };
+
+    const robots = [];
+
+    for (let i = 0; i < totalRuns; i++) {
+      robots.push(create(i));
+    }
+
+    return robots;
+  };
+
+  const performStep = (input) => {
+    const { robot } = input;
+    const { result, action } = robot.update();
+    return action.points[result];
+  };
+
+  const performRun = async (input) => {
+    const { robot, dna, run } = input;
+
+    robot.instruct(dna);
+
+    const total = robot.getTotal();
+
+    let fit = 0;
+
+    return new Promise((resolve) => {
+      for (let i = 0; i < total; i++) {
+        fit += performStep({ ...input, run, step: i });
+      }
+
+      resolve(fit);
+    });
+  };
 
   const getFitness = async (input) => {
     const { strategy } = input;
@@ -64,14 +67,15 @@ const getTrashProgram = (options) => {
 
     const robots = Runs({ ...input, ...options });
 
-    const promises = robots.map((robot, index) => {
-      return performRun({
+    const promises = robots.map(async (robot, index) => {
+      const result = await performRun({
         ...input,
         ...options,
         dna,
         robot,
         run: index,
       });
+      return result;
     });
 
     const fits = await Promise.all(promises);
@@ -111,32 +115,36 @@ const getTrashProgram = (options) => {
   };
 
   const combineDna = (dna, otherDna) => {
-    const getRand = (max, min = 0) => {
-      return Math.floor(Math.random() * (max - min)) + min;
-    };
+    // const getRand = (max, min = 0) => {
+    //   return Math.floor(Math.random() * (max - min)) + min;
+    // };
 
-    const lenMax = 12;
-    const lenMin = 2;
-    const segNumMax = Math.floor(popTotal / lenMax / 2);
-    const segNumMin = 5;
+    // const lenMax = 12;
+    // const lenMin = 2;
+    // const segNumMax = Math.floor(popTotal / lenMax / 2);
+    // const segNumMin = 5;
 
-    const segNum = getRand(segNumMax, segNumMin);
+    // const segNum = getRand(segNumMax, segNumMin);
 
-    const tempDna = [...dna];
+    // const tempDna = [...dna];
 
-    for (let i = 0; i < segNum; i++) {
-      const rand = getRand(popTotal);
-      const len = getRand(lenMax, lenMin);
-      const segment = otherDna.slice(rand, rand + len);
+    // for (let i = 0; i < segNum; i++) {
+    //   const rand = getRand(popTotal);
+    //   const len = getRand(lenMax, lenMin);
+    //   const segment = otherDna.slice(rand, rand + len);
 
-      tempDna.splice(rand, len, ...segment);
-    }
+    //   tempDna.splice(rand, len, ...segment);
+    // }
 
-    const limitDna = tempDna.slice(0, dna.length);
-    const rest = dna.slice(limitDna.length, dna.length) || [];
+    // const limitDna = tempDna.slice(0, dna.length);
+    // const rest = dna.slice(limitDna.length, dna.length) || [];
 
-    const newDna = [...limitDna, ...rest];
-    return newDna;
+    // const newDna = [...limitDna, ...rest];
+    // return newDna;
+
+    return dna.map((gene, index) => {
+      return Math.random() < 0.5 ? gene : otherDna[index];
+    });
   };
 
   const combine = (a, b) => {
@@ -148,7 +156,19 @@ const getTrashProgram = (options) => {
     return { dna: newDna, steps };
   };
 
-  return { mutate, getFitness, combine };
+  const simulate = (input) => {
+    const { result, action, ...rest } = step(input);
+    return { result, action, points: action.points[result], ...rest };
+  };
+
+  const create = ({ size, trashRate }) => {
+    return {
+      grid: createRandomGrid({ size, trashRate }),
+      robot: { x: 0, y: 0 },
+    };
+  };
+
+  return { mutate, getFitness, combine, simulate, create };
 };
 
 export default getTrashProgram;

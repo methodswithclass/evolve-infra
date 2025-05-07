@@ -1,9 +1,9 @@
-import React from 'react';
-import { Flex, Text } from '@chakra-ui/react';
-import Header from '../components/Header';
-import TrashArena from '../components/TrashArena';
-import Demo from '../components/Demo';
-import { checkMobile } from '../utils/utils';
+import React from "react";
+import { Flex, Text } from "@chakra-ui/react";
+import Header from "../components/Header";
+import TrashArena from "../components/TrashArena";
+import Demo from "../components/Demo";
+import { checkMobile } from "../utils/utils";
 
 const power = () => {
   const base = 3;
@@ -22,8 +22,8 @@ const TrashDemo = () => {
   const isMobile = checkMobile();
   return (
     <>
-      <Flex w="100%" h="100%" flexDirection="column" align="center">
-        <Header active="trash" />
+      <Header active="trash" />
+      <Flex w="100%" h="100%" direction="column" align="center" justify>
         {isMobile ? <Text fontSize={30}>Trash Pickup</Text> : null}
         <Demo name="trash" total={power()} arena={TrashArena} />
       </Flex>

@@ -1,11 +1,12 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
   DynamoDBDocumentClient,
   BatchWriteCommand,
   UpdateCommand,
   QueryCommand,
-} from '@aws-sdk/lib-dynamodb';
-import { getEventParams } from '../../utils/request-util';
+} from "@aws-sdk/lib-dynamodb";
+import { splitEvery } from "ramda";
+import { getEventParams } from "../../utils/request-util";
 
 const batchSize = 25;
 
@@ -19,17 +20,17 @@ const getDBService = (event) => {
 
   const getSK = (data) => {
     const { gen, ind } = data || {};
-    const genKey = `${gen ? `#${gen}` : ''}`;
-    const indKey = `${ind ? `#${ind}` : ''}`;
+    const genKey = `${gen ? `#gen:${gen}` : ""}`;
+    const indKey = `${ind ? `#ind:${ind}` : ""}`;
     return `item${genKey}${indKey}`;
   };
 
-  const update = (data) => {
+  const update = async (data) => {
     const { payload = {} } = data || {};
     const params = Object.entries(payload).reduce((accum, [key, value]) => {
       return {
         ...accum,
-        [key]: { Action: 'PUT', Value: value },
+        [key]: { Action: "PUT", Value: value },
       };
     }, {});
 
@@ -47,16 +48,16 @@ const getDBService = (event) => {
     return dbClient.send(command);
   };
 
-  const list = (data) => {
+  const list = async (data) => {
     const input = {
       TableName,
       KeyConditions: {
         pk: {
-          ComparisonOperator: 'EQ',
+          ComparisonOperator: "EQ",
           AttributeValueList: [id],
         },
         sk: {
-          ComparisonOperator: 'BEGINS_WITH',
+          ComparisonOperator: "BEGINS_WITH",
           AttributeValueList: [getSK(data)],
         },
       },
@@ -67,31 +68,18 @@ const getDBService = (event) => {
     return dbClient.send(command).then((res) => res.Items);
   };
 
-  const get = (data) => {
-    const input = {
-      TableName,
-      KeyConditions: {
-        pk: {
-          ComparisonOperator: 'EQ',
-          AttributeValueList: [id],
-        },
-        sk: {
-          ComparisonOperator: 'EQ',
-          AttributeValueList: [getSK(data)],
-        },
-      },
-    };
-
-    const command = new QueryCommand(input);
-
-    return dbClient.send(command).then((res) => res.Items[0]);
+  const get = async (data) => {
+    const items = await list(data);
+    return items[0];
   };
 
   const deleteItems = async () => {
     const items = await list();
 
-    const write = async (_items) => {
-      const requests = _items.map((item) => {
+    const batches = splitEvery(batchSize, items);
+
+    const promises = batches.map(async (batch) => {
+      const requests = batch.map((item) => {
         const { pk, sk } = item;
         return {
           DeleteRequest: {
@@ -112,16 +100,9 @@ const getDBService = (event) => {
       const command = new BatchWriteCommand(params);
 
       return dbClient.send(command);
-    };
+    });
 
-    let begin = 0;
-    let remaining = false;
-
-    do {
-      remaining = items.length > begin + batchSize;
-      await write(items.slice(begin, begin + batchSize));
-      begin += batchSize;
-    } while (remaining);
+    await Promise.all(promises);
 
     return true;
   };
