@@ -8,7 +8,7 @@ const round = (number, size) => {
 };
 
 const Plot = (props) => {
-  const { points, maxY, minY } = props;
+  const { name, points, maxY, minY } = props;
 
   const [scaleY, setYScale] = useState([]);
   const [scaleX, setXScale] = useState([]);
@@ -25,7 +25,9 @@ const Plot = (props) => {
   const xBreak = scaleX.length > 1000 ? 500 : scaleX.length > 500 ? 100 : 20;
 
   useEffect(() => {
-    if (points.length === 0) {
+    if (points?.length === 0) {
+      setXScale([]);
+      setYScale([]);
       return;
     }
 
@@ -38,7 +40,7 @@ const Plot = (props) => {
       ynum.push(i);
     }
 
-    for (let j = 0; j < points.length; j += 1) {
+    for (let j = 0; j < points?.length; j += 1) {
       xnum.push(j);
     }
 
@@ -47,31 +49,44 @@ const Plot = (props) => {
   }, [minPoint, maxPoint, points]);
 
   return (
-    <Flex w="60%" direction="row">
+    <Flex direction="row" w="60%" minWidth="400px" justify="end" align="start">
+      {name === "trash" && (
+        <Flex
+          direction="column-reverse"
+          m="20px"
+          w="40px"
+          h="300px"
+          justify="start"
+          align="start"
+        >
+          {scaleY.map((item, index) => (
+            <div
+              key={`item${index}`}
+              style={{
+                width: "40px",
+                textAlign: "end",
+                height: `${100 / scaleY.length}%`,
+                minHeight: index % yBreak === 0 ? "30px" : 0,
+              }}
+            >
+              {index % yBreak === 0 ? item : null}
+            </div>
+          ))}
+        </Flex>
+      )}
       <Flex
-        direction="column-reverse"
-        m="20px"
-        h="300px"
-        justify="space-around"
-        align="end"
+        w="500px"
+        minWidth="100%"
+        direction="column"
+        justify="center"
+        align="start"
       >
-        {scaleY.map((item, index) => (
-          <div
-            key={`item${index}`}
-            style={{
-              position: "relative",
-              width: "100px",
-              textAlign: "end",
-              height: `${100 / scaleY.length}%`,
-            }}
-          >
-            {index % yBreak === 0 ? item : null}
-          </div>
-        ))}
-      </Flex>
-      <Flex w="100%" direction="column">
-        <div className="trashplot-container">
-          <div>Point History</div>
+        <div
+          className={`${
+            name === "trash" ? "trashplot-container" : "feedbackArena"
+          }`}
+        >
+          {name === "trash" && <div>Point History</div>}
           <div className="trashplot">
             <div className="points">
               {points?.map((item, index) => (
@@ -90,21 +105,29 @@ const Plot = (props) => {
             </div>
           </div>
         </div>
-        <Flex direction="row" m="20px" justify="center" align="space-around">
-          {scaleX.map((item, index) => (
-            <div
-              key={`item${index}`}
-              style={{
-                position: "relative",
-                height: "50px",
-                textAlign: "end",
-                width: `${index % 20 === 0 ? "20px" : 100 / scaleX.length}%`,
-              }}
-            >
-              {index % xBreak === 0 ? item : null}
-            </div>
-          ))}
-        </Flex>
+        {name === "trash" && (
+          <Flex
+            direction="row"
+            m="20px"
+            w="100%"
+            justify="center"
+            align="space-around"
+          >
+            {scaleX.map((item, index) => (
+              <div
+                key={`item${index}`}
+                style={{
+                  position: "relative",
+                  height: "50px",
+                  textAlign: "end",
+                  width: `${index % 20 === 0 ? "20px" : 100 / scaleX.length}%`,
+                }}
+              >
+                {index % xBreak === 0 ? item : null}
+              </div>
+            ))}
+          </Flex>
+        )}
       </Flex>
     </Flex>
   );

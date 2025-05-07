@@ -54,6 +54,10 @@ export const max = (array) => {
   return max;
 };
 
+export const round = (number, size) => {
+  return Math.round(number / size) * size;
+};
+
 export const overrideConsole = (override) => {
   const console = {
     log: () => {},

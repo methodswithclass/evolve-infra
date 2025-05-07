@@ -1,15 +1,20 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { Flex, Button, Field, Text, Input, Progress } from "@chakra-ui/react";
-import { connect, send, subscribe } from "../../services/api-service";
-import { checkMobile, formatNumber } from "../../utils/utils";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { Flex, Button, Text, Input, Progress } from "@chakra-ui/react";
+import {
+  connect,
+  send,
+  subscribe,
+  isConnected,
+} from "../../services/api-service";
+import { formatNumber, average, round } from "../../utils/utils";
 import { blue1 } from "../../utils/constants";
 import Select from "../Select";
 
 let timer;
 const width = 200;
-const refreshTime = 900 - 60;
+const refreshInterval = 900 - 60;
 
-const getRefreshTime = () => new Date().getTime() + refreshTime * 1000;
+const getRefreshTime = () => new Date().getTime() + refreshInterval * 1000;
 
 const getCurrentTime = () => new Date().getTime();
 
@@ -19,6 +24,7 @@ const Demo = (props) => {
   const [total, setTotal] = useState(2000);
   const [current, setCurrent] = useState(first);
   const [disableRun, setDisableRun] = useState(true);
+  const [connected, setConnected] = useState(false);
   const [best, setBest] = useState({ fitness: 0 });
   const [history, setHistory] = useState([]);
   const [refreshTime, setRefreshTime] = useState(null);
@@ -28,6 +34,13 @@ const Demo = (props) => {
   const [size, setSize] = useState(5);
 
   const totalSteps = size * size * 2;
+  const maxFitness = Math.round(size * size * 0.499999) * 10;
+
+  const ref = useRef({});
+
+  if (!connected && isConnected()) {
+    setConnected(true);
+  }
 
   const onChange = (e) => {
     setSize(e?.value?.[0]);
@@ -89,7 +102,8 @@ const Demo = (props) => {
     setRefreshTime(getRefreshTime());
     setRunning(true);
     send("run", data);
-  }, [first, total, best]);
+    ref?.current?.scrollIntoView();
+  }, [first, total, best, size, totalSteps, ref]);
 
   const handleStop = (e) => {
     if (e === true) {
@@ -105,7 +119,7 @@ const Demo = (props) => {
   };
 
   const handleConnected = () => {
-    setDisableRun(false);
+    setConnected(true);
   };
 
   const handleResponse = useCallback(
@@ -148,6 +162,12 @@ const Demo = (props) => {
   }, []);
 
   useEffect(() => {
+    if (connected) {
+      setDisableRun(false);
+    }
+  }, [connected]);
+
+  useEffect(() => {
     const unsubConnected = subscribe("connected", handleConnected);
     const unsubRun = subscribe("run", handleResponse);
     return () => {
@@ -164,15 +184,24 @@ const Demo = (props) => {
           if (mill >= refreshTime) {
             handleStop(true);
             clearTimer();
+            return;
+          }
+          if (
+            name === "trash" &&
+            Math.abs(average(history.slice(-50)) - maxFitness) / maxFitness <=
+              0.01
+          ) {
+            handleStop();
+            clearTimer();
           }
         } else {
           clearTimer();
         }
-      }, [1000]);
+      }, [300]);
     }
 
     return clearTimer;
-  }, [running, refreshTime]);
+  }, [running, refreshTime, history]);
 
   useEffect(() => {
     if (running && final) {
@@ -192,87 +221,138 @@ const Demo = (props) => {
     <div className="demo">
       <Flex w="100%" direction="column" align="center">
         <Flex
-          m="100px 0"
-          w="100%"
+          m="100px 0 50px 0"
+          w="60%"
+          minWidth="500px"
           direction="column"
-          align="center"
+          align="start"
           justify="center"
         >
-          <Flex
-            w={width}
-            h="100%"
-            direction="column"
-            justify="center"
-            align="center"
+          <Text
+            color={blue1}
+            w="100%"
+            borderTop={`5px solid ${blue1}`}
+            fontSize="30px"
+            m="0 0 100px 0"
           >
-            <Text m="0 0 10px 0">Total Generations</Text>
-            <Input value={total} onChange={handleTotal} />
-            <Text m="20px 0 10px 0">Train against</Text>
-            <Select
-              height="200px"
-              items={[
-                { label: "5", value: 5 },
-                { label: "10", value: 10 },
-                { label: "20", value: 20 },
-              ]}
-              value={size}
-              onChange={onChange}
-            />
-            <Button
-              m="20px"
-              w={width}
-              disabled={disableRun}
-              onClick={handleRun}
-              bgColor={blue1}
+            Train
+          </Text>
+          <Flex direction="column" w="100%" align="center" justify="center">
+            <Flex direction="row" w="100%" justify="space-around" align="start">
+              <Flex direction="column" justify="center" align="start">
+                <Button
+                  m="20px"
+                  w={width}
+                  disabled={disableRun}
+                  onClick={handleRun}
+                  bgColor={blue1}
+                >
+                  Start
+                </Button>
+                <Button
+                  m="20px"
+                  w={width}
+                  disabled={!disableRun}
+                  onClick={handleStop}
+                  bgColor={blue1}
+                >
+                  Stop
+                </Button>
+                <Button
+                  m="20px"
+                  w={width}
+                  disabled={disableRun || history?.length === 0}
+                  onClick={handleReset}
+                  bgColor={blue1}
+                >
+                  Reset
+                </Button>
+              </Flex>
+              <Flex
+                direction="column"
+                m="20px 0"
+                justify="center"
+                align="center"
+              >
+                <Text m="0 0 10px 0">Total Generations</Text>
+                <Input w="100%" value={total} onChange={handleTotal} />
+                <Flex direction="column" w="100%" h="200px">
+                  {name === "trash" && !disableRun && (
+                    <>
+                      <Text m="20px 0 10px 0">Train against</Text>
+                      <Select
+                        w="100%"
+                        items={[
+                          { label: "5", value: 5 },
+                          { label: "10", value: 10 },
+                          { label: "20", value: 20 },
+                        ]}
+                        value={size}
+                        onChange={onChange}
+                      />
+                    </>
+                  )}
+                </Flex>
+              </Flex>
+            </Flex>
+            <Text
+              ref={ref}
+              color={blue1}
+              w="100%"
+              borderTop={`5px solid ${blue1}`}
+              fontSize="30px"
             >
-              Train
-            </Button>
-            <Button m="20px" w={width} onClick={handleStop} bgColor={blue1}>
-              Stop
-            </Button>
-            <Button
-              m="20px"
-              w={width}
-              disabled={disableRun}
-              onClick={handleReset}
-              bgColor={blue1}
-            >
-              Reset
-            </Button>
-          </Flex>
-          <Flex w="80%" m="50px 0 20px 0" direction="column" align="center">
-            <Flex direction="row" w="100%" justify="start" align="center">
-              <Text w="50%" padding="0 20px" textAlign="end">
-                total:
-              </Text>
-              <Text w="50%" padding="0 20px">
-                {total}
-              </Text>
+              Training
+            </Text>
+            <Flex w="100%" m="50px 0 20px 0" direction="column" align="center">
+              <Flex direction="row" w="100%" justify="start" align="center">
+                <Text w="50%" padding="0 20px" textAlign="end">
+                  total:
+                </Text>
+                <Text w="50%" padding="0 20px">
+                  {total}
+                </Text>
+              </Flex>
+              <Flex direction="row" w="100%" justify="center" align="center">
+                <Text w="50%" padding="0 20px" textAlign="end">
+                  generation:
+                </Text>
+                <Text w="50%" padding="0 20px">
+                  {current}
+                </Text>
+              </Flex>
+              {name === "trash" && (
+                <Flex direction="row" w="100%" justify="center" align="center">
+                  <Text w="50%" padding="0 20px" textAlign="end">
+                    max fitness:
+                  </Text>
+                  <Text w="50%" padding="0 20px">
+                    {formatNumber(`${maxFitness}`)}
+                  </Text>
+                </Flex>
+              )}
+              <Flex direction="row" w="100%" justify="center" align="center">
+                <Text w="50%" padding="0 20px" textAlign="end">
+                  fitness:
+                </Text>
+                <Text w="50%" padding="0 20px">
+                  {formatNumber(`${best?.fitness}`)}
+                </Text>
+              </Flex>
+
+              <Progress.Root
+                w="100%"
+                m="50px 0"
+                value={(current / total) * 100}
+              >
+                <Progress.Track>
+                  <Progress.Range />
+                </Progress.Track>
+              </Progress.Root>
             </Flex>
-            <Flex direction="row" w="100%" justify="center" align="center">
-              <Text w="50%" padding="0 20px" textAlign="end">
-                generation:
-              </Text>
-              <Text w="50%" padding="0 20px">
-                {current}
-              </Text>
-            </Flex>
-            <Flex direction="row" w="100%" justify="center" align="center">
-              <Text w="50%" padding="0 20px" textAlign="end">
-                fitness:
-              </Text>
-              <Text w="50%" padding="0 20px">
-                {formatNumber(`${best?.fitness}`)}
-              </Text>
-            </Flex>
-            <Progress.Root w="100%" m="50px 0" value={(current / total) * 100}>
-              <Progress.Track>
-                <Progress.Range />
-              </Progress.Track>
-            </Progress.Root>
           </Flex>
         </Flex>
-        <Arena best={best} history={history} totalSteps={totalSteps} />
+        <Arena width="100%" best={best} history={history} />
       </Flex>
     </div>
   );

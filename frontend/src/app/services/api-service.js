@@ -23,7 +23,7 @@ const isConnecting = () => {
   return getState() === STATES.connecting;
 };
 
-const isConnected = () => {
+export const isConnected = () => {
   return getState() === STATES.connected;
 };
 

@@ -1,8 +1,9 @@
 import React from "react";
-import { Flex, Button, Drawer, useDisclosure } from "@chakra-ui/react";
+import { Flex, Button, Drawer, Portal, useDisclosure } from "@chakra-ui/react";
 // import { HamburgerIcon } from "@chakra-ui/icons";
 import { useNavigate } from "react-router-dom";
 import { checkMobile } from "../../utils/utils";
+import { blue1 } from "../../utils/constants";
 
 const Header = (props) => {
   const { active } = props;
@@ -36,31 +37,47 @@ const Header = (props) => {
     <>
       {isMobile ? (
         <>
-          <Flex w="100%" h="50px" justify="end">
-            <Button w="50px" h="50px" right="50px" bg="white" onClick={onOpen}>
-              Settings
-            </Button>
-          </Flex>
-          <Drawer.Root isOpen={isOpen} placement="right" onClose={onClose}>
-            <Drawer.CloseTrigger />
-            <Drawer.Content>
-              <Flex w="100%" h="100%" flexDirection={`column`} align="center">
-                <div className="headerTitle-mobile" onClick={handleBack}>
-                  <div>Evolution</div>
-                </div>
-                {menu.map((item) => (
-                  <Button
-                    key={item.id}
-                    size="sm"
-                    m="20px 0"
-                    bgColor={item.active ? "blue" : "gray"}
-                    onClick={item.onClick}
-                  >
-                    {item.title}
-                  </Button>
-                ))}
+          <Drawer.Root isOpen={isOpen}>
+            <Drawer.Trigger asChild>
+              <Flex direction="row" align="end" justify="end">
+                <Button w="100px" h="50px" m="20px" bg="black" onClick={onOpen}>
+                  Menu
+                </Button>
               </Flex>
-            </Drawer.Content>
+            </Drawer.Trigger>
+            <Portal>
+              <Drawer.Backdrop />
+              <Drawer.Positioner>
+                <Drawer.Content>
+                  <Flex
+                    w="100%"
+                    h="100%"
+                    flexDirection={`column`}
+                    align="center"
+                  >
+                    <div className="headerTitle-mobile" onClick={handleBack}>
+                      <div>Evolution</div>
+                    </div>
+                    <Drawer.CloseTrigger asChild>
+                      <Button w="50px" h="50px" onClick={onClose}>
+                        x
+                      </Button>
+                    </Drawer.CloseTrigger>
+                    {menu.map((item) => (
+                      <Button
+                        key={item.id}
+                        size="sm"
+                        m="20px 0"
+                        bgColor={`${item.active ? blue1 : "gray"}`}
+                        onClick={item.onClick}
+                      >
+                        {item.title}
+                      </Button>
+                    ))}
+                  </Flex>
+                </Drawer.Content>
+              </Drawer.Positioner>
+            </Portal>
           </Drawer.Root>
         </>
       ) : (
